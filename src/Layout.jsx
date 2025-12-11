@@ -11,7 +11,9 @@ import {
   X,
   LogOut,
   ChevronDown,
-  Settings
+  Settings,
+  ShoppingCart,
+  DollarSign
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,8 +53,11 @@ export default function Layout({ children, currentPageName }) {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: 'Dashboard' },
+    { name: 'Marketplace', icon: ShoppingCart, path: 'LeadMarketplace' },
+    { name: 'Pedidos', icon: Package, path: 'Orders' },
     { name: 'Leads', icon: Users, path: 'Leads' },
     { name: 'Produtos', icon: Package, path: 'Products' },
+    { name: 'Precificação', icon: DollarSign, path: 'ProductPricing' },
     { name: 'Equipe', icon: Users, path: 'Team' },
     { name: 'Formulários', icon: FileText, path: 'FormTemplates' },
   ];
