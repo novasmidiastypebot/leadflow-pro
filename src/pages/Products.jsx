@@ -131,7 +131,9 @@ export default function Products() {
       category_id: formData.get('category_id'),
       name: formData.get('name'),
       description: formData.get('description'),
-      price: parseFloat(formData.get('price')),
+      price: parseFloat(formData.get('price')) || 0,
+      accepted_lead_types: formData.get('accepted_lead_types'),
+      subcategories: formData.get('subcategories') || null,
       status: 'active',
     };
 
@@ -199,7 +201,8 @@ export default function Products() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead>Preço</TableHead>
+                <TableHead>Tipo Aceito</TableHead>
+                <TableHead>Subcategorias</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
@@ -213,7 +216,31 @@ export default function Products() {
                     <TableCell>
                       <Badge variant="outline">{category?.name || 'Sem categoria'}</Badge>
                     </TableCell>
-                    <TableCell>R$ {product.price?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="capitalize">
+                        {product.accepted_lead_types === 'both' ? 'PF e PJ' : 
+                         product.accepted_lead_types === 'fisica' ? 'PF' : 
+                         product.accepted_lead_types === 'juridica' ? 'PJ' : 'Indiferente'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {product.subcategories ? (
+                        <div className="flex flex-wrap gap-1">
+                          {product.subcategories.split(',').slice(0, 2).map((sub, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">
+                              {sub.trim()}
+                            </Badge>
+                          ))}
+                          {product.subcategories.split(',').length > 2 && (
+                            <Badge variant="secondary" className="text-xs">
+                              +{product.subcategories.split(',').length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge className={product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                         {product.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -278,7 +305,7 @@ export default function Products() {
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
-              <Label htmlFor="category_id">Categoria</Label>
+              <Label htmlFor="category_id">Categoria *</Label>
               <Select name="category_id" defaultValue={editingProduct?.category_id} required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
@@ -291,13 +318,39 @@ export default function Products() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="name">Nome do Produto *</Label>
               <Input
                 id="name"
                 name="name"
                 defaultValue={editingProduct?.name}
+                placeholder="Ex: Bradesco, Ademicon, Multimarcas"
                 required
               />
+            </div>
+            <div>
+              <Label htmlFor="accepted_lead_types">Tipo de Lead Aceito *</Label>
+              <Select name="accepted_lead_types" defaultValue={editingProduct?.accepted_lead_types || 'both'} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="both">Indiferente (PF e PJ)</SelectItem>
+                  <SelectItem value="fisica">Apenas Pessoa Física (PF)</SelectItem>
+                  <SelectItem value="juridica">Apenas Pessoa Jurídica (PJ)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="subcategories">Subcategorias</Label>
+              <Input
+                id="subcategories"
+                name="subcategories"
+                defaultValue={editingProduct?.subcategories}
+                placeholder="Ex: Imóvel, Auto, Maquinários (separadas por vírgula)"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Opcional: separe por vírgula para criar subcategorias
+              </p>
             </div>
             <div>
               <Label htmlFor="description">Descrição</Label>
@@ -308,15 +361,18 @@ export default function Products() {
               />
             </div>
             <div>
-              <Label htmlFor="price">Preço</Label>
+              <Label htmlFor="price">Preço Base (opcional)</Label>
               <Input
                 id="price"
                 name="price"
                 type="number"
                 step="0.01"
                 defaultValue={editingProduct?.price}
-                required
+                placeholder="0.00"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Configure preços específicos por estado/DDD na página de Precificação
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setShowProductDialog(false)}>
