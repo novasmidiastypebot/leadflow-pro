@@ -5,6 +5,7 @@ import Team from './pages/Team';
 import FormTemplates from './pages/FormTemplates';
 import FormBuilder from './pages/FormBuilder';
 import FormEmbed from './pages/FormEmbed';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -16,6 +17,7 @@ export const PAGES = {
     "FormTemplates": FormTemplates,
     "FormBuilder": FormBuilder,
     "FormEmbed": FormEmbed,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {

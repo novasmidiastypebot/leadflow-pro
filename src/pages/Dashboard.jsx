@@ -4,10 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getAccessibleUsers } from '../components/AccessControl';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [accessibleEmails, setAccessibleEmails] = useState([]);
 
   useEffect(() => {
     loadUser();
@@ -19,16 +21,25 @@ export default function Dashboard() {
     const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
     if (profiles.length > 0) {
       setUserProfile(profiles[0]);
+      const emails = await getAccessibleUsers(currentUser, profiles[0]);
+      setAccessibleEmails(emails);
     }
   };
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads', userProfile?.client_id],
     queryFn: async () => {
       if (!userProfile) return [];
       return await base44.entities.Lead.filter({ client_id: userProfile.client_id });
     },
     enabled: !!userProfile,
+  });
+
+  // Filtrar leads baseado em hierarquia
+  const leads = allLeads.filter(lead => {
+    if (user?.role === 'admin') return true;
+    if (!lead.assigned_to) return true;
+    return accessibleEmails.includes(lead.assigned_to);
   });
 
   const stats = [

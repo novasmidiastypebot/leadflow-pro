@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/dialog';
 import { Search, Eye } from 'lucide-react';
 import { format } from 'date-fns';
+import { getAccessibleUsers } from '../components/AccessControl';
+import LeadAssignment from '../components/LeadAssignment';
 
 export default function Leads() {
   const [user, setUser] = useState(null);
@@ -35,6 +37,7 @@ export default function Leads() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedLead, setSelectedLead] = useState(null);
+  const [accessibleEmails, setAccessibleEmails] = useState([]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -47,16 +50,25 @@ export default function Leads() {
     const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
     if (profiles.length > 0) {
       setUserProfile(profiles[0]);
+      const emails = await getAccessibleUsers(currentUser, profiles[0]);
+      setAccessibleEmails(emails);
     }
   };
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads', userProfile?.client_id],
     queryFn: async () => {
       if (!userProfile) return [];
       return await base44.entities.Lead.filter({ client_id: userProfile.client_id }, '-created_date');
     },
     enabled: !!userProfile,
+  });
+
+  // Filtrar leads baseado em hierarquia
+  const leads = allLeads.filter(lead => {
+    if (user?.role === 'admin') return true;
+    if (!lead.assigned_to) return true;
+    return accessibleEmails.includes(lead.assigned_to);
   });
 
   const updateLeadMutation = useMutation({
@@ -238,6 +250,19 @@ export default function Leads() {
                   </Select>
                 </div>
               </div>
+
+              <LeadAssignment
+                currentUser={user}
+                currentUserProfile={userProfile}
+                selectedLead={selectedLead}
+                onAssign={(assignedTo) => {
+                  updateLeadMutation.mutate({
+                    id: selectedLead.id,
+                    data: { assigned_to: assignedTo }
+                  });
+                  setSelectedLead({ ...selectedLead, assigned_to: assignedTo });
+                }}
+              />
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Dados do Formulário</h3>

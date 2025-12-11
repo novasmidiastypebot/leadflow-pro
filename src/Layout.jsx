@@ -10,7 +10,8 @@ import {
   Menu, 
   X,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,6 +57,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Formulários', icon: FileText, path: 'FormTemplates' },
   ];
 
+  const settingsItem = { name: 'Configurações', icon: Settings, path: 'Settings' };
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -80,6 +83,18 @@ export default function Layout({ children, currentPageName }) {
               <span>{item.name}</span>
             </Link>
           ))}
+          
+          <Link
+            to={createPageUrl(settingsItem.path)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              currentPageName === settingsItem.path
+                ? 'bg-blue-50 text-blue-700 font-medium'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <settingsItem.icon className="w-5 h-5" />
+            <span>{settingsItem.name}</span>
+          </Link>
         </nav>
 
         <div className="p-4 border-t border-gray-200">
