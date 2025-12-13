@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import toast from 'react-hot-toast';
 
 const ESTADOS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 
@@ -99,15 +100,22 @@ export default function OrderCreate() {
   const createOrderMutation = useMutation({
     mutationFn: async (order) => {
       console.log('Criando pedido com dados:', order);
-      return await base44.entities.Order.create(order);
+      const result = await base44.entities.Order.create(order);
+      console.log('Pedido criado com sucesso:', result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('onSuccess chamado, pedido:', data);
+      toast.success('Pedido criado com sucesso!');
       queryClient.invalidateQueries(['orders']);
-      navigate(createPageUrl('Orders'));
+      setTimeout(() => {
+        navigate(createPageUrl('Orders'));
+      }, 500);
     },
     onError: (error) => {
-      console.error('Erro ao criar pedido:', error);
-      alert('Erro ao criar pedido: ' + (error.message || 'Erro desconhecido'));
+      console.error('Erro completo ao criar pedido:', error);
+      console.error('Error stack:', error.stack);
+      toast.error('Erro ao criar pedido: ' + (error.message || JSON.stringify(error)));
     },
   });
 
