@@ -148,7 +148,19 @@ export default function Leads() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLeads.map((lead) => (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      Carregando leads...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                      Nenhuma lead encontrada
+                    </TableCell>
+                  </TableRow>
+                ) : filteredLeads.map((lead) => (
                   <TableRow key={lead.id}>
                     <TableCell className="font-medium">
                       {lead.form_data?.nome || lead.form_data?.name || 'Sem nome'}
