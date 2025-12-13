@@ -64,7 +64,7 @@ export default function FormBuilder() {
           placeholder: 'Selecione',
           is_required: false,
           options: 'Sim,Não',
-          is_default: true,
+          is_default: false,
         }
       ]);
     }
@@ -100,7 +100,7 @@ export default function FormBuilder() {
           placeholder: 'Selecione',
           is_required: false,
           options: 'Sim,Não',
-          is_default: true,
+          is_default: false,
         });
       }
       
