@@ -79,13 +79,20 @@ export default function OrderCreate() {
   };
 
   const loadPricing = async () => {
-    // Buscar preço médio dos estados selecionados
-    const pricings = await base44.entities.ProductPricing.filter({
-      product_id: selectedProduct,
-      lead_type: leadType,
-    });
+    // Determinar quais tipos buscar
+    const typesToFetch = leadType === 'ambos' ? ['juridica', 'fisica'] : [leadType];
     
-    const statePricings = pricings.filter(p => 
+    // Buscar preços para todos os tipos necessários
+    const allPricings = [];
+    for (const type of typesToFetch) {
+      const pricings = await base44.entities.ProductPricing.filter({
+        product_id: selectedProduct,
+        lead_type: type,
+      });
+      allPricings.push(...pricings);
+    }
+    
+    const statePricings = allPricings.filter(p => 
       selectedStates.includes(p.state) && (!p.ddd || p.ddd === '')
     );
     
