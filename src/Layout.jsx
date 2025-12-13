@@ -26,7 +26,7 @@ import {
 export default function Layout({ children, currentPageName }) {
   // Não renderizar layout para página de embed
   if (currentPageName === 'FormEmbed') {
-    return children;
+    return <>{children}</>;
   }
 
   const [user, setUser] = useState(null);
