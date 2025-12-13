@@ -22,6 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ children, currentPageName }) {
   // Não renderizar layout para página de embed
@@ -70,7 +71,9 @@ export default function Layout({ children, currentPageName }) {
   const settingsItem = { name: 'Configurações', icon: Settings, path: 'Settings' };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <>
+      <Toaster position="top-center" />
+      <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
       <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 bg-white border-r border-gray-200 flex flex-col overflow-hidden`}>
         <div className="p-6 border-b border-gray-200">
@@ -154,6 +157,7 @@ export default function Layout({ children, currentPageName }) {
           {children}
         </main>
       </div>
-    </div>
-  );
-}
+      </div>
+      </>
+      );
+      }
