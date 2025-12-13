@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Building2, User, Save } from 'lucide-react';
 import { canManageUsers, isSuperAdmin } from '../components/AccessControl';
+import toast from 'react-hot-toast';
 
 export default function Settings() {
   const [user, setUser] = useState(null);
@@ -41,6 +42,7 @@ export default function Settings() {
     mutationFn: ({ id, data }) => base44.entities.Client.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['client']);
+      toast.success('Dados da empresa salvos com sucesso!');
     },
   });
 
@@ -48,6 +50,7 @@ export default function Settings() {
     mutationFn: ({ id, data }) => base44.entities.UserProfile.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['profiles']);
+      toast.success('Perfil atualizado com sucesso!');
     },
   });
 
