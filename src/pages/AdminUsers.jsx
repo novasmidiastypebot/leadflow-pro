@@ -128,23 +128,31 @@ export default function AdminUsers() {
   const handleMasterSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = {
-      client_id: formData.get('client_id'),
-      name: formData.get('name'),
-      email: formData.get('email'),
-      phone: formData.get('phone'),
-      password: formData.get('password'),
-      role: 'master',
-      status: formData.get('status'),
-    };
-
+    
     if (editingMember) {
-      const updateData = { ...data };
-      if (!updateData.password) {
-        delete updateData.password;
+      const updateData = {
+        client_id: formData.get('client_id'),
+        name: formData.get('name'),
+        email: editingMember.email,
+        phone: formData.get('phone'),
+        role: 'master',
+        status: formData.get('status'),
+      };
+      const password = formData.get('password');
+      if (password) {
+        updateData.password = password;
       }
       updateMemberMutation.mutate({ id: editingMember.id, data: updateData });
     } else {
+      const data = {
+        client_id: formData.get('client_id'),
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        password: formData.get('password'),
+        role: 'master',
+        status: formData.get('status'),
+      };
       createMemberMutation.mutate(data);
     }
   };
