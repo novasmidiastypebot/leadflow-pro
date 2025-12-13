@@ -131,9 +131,9 @@ export default function Orders() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Investido</p>
+                <p className="text-sm text-gray-600">Total Creditado</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  R$ {orders.reduce((sum, o) => sum + (o.paid_amount || 0), 0).toFixed(2)}
+                  R$ {orders.reduce((sum, o) => sum + (o.total_amount || 0), 0).toFixed(2)}
                 </p>
               </div>
               <Package className="w-8 h-8 text-blue-600" />
@@ -148,11 +148,11 @@ export default function Orders() {
             <TableHeader>
               <TableRow>
                 <TableHead>Produto</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Estado/DDD</TableHead>
+                <TableHead>Tipo Lead</TableHead>
+                <TableHead>Estados/DDDs</TableHead>
                 <TableHead>Quantidade</TableHead>
                 <TableHead>Progresso</TableHead>
-                <TableHead>Valor</TableHead>
+                <TableHead>Saldo</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -160,7 +160,8 @@ export default function Orders() {
               {orders.map((order) => {
                 const product = products.find(p => p.id === order.product_id);
                 const progress = (order.delivered_quantity / order.total_quantity) * 100;
-                
+                const creditProgress = order.total_amount > 0 ? (order.consumed_amount / order.total_amount) * 100 : 0;
+
                 return (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">
@@ -168,15 +169,22 @@ export default function Orders() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {order.lead_type}
+                        {order.lead_types === 'ambos' ? 'PJ e PF' : order.lead_types === 'juridica' ? 'PJ' : 'PF'}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {order.state} {order.ddd && `(${order.ddd})`}
+                      <div className="text-sm">
+                        <div>{order.states?.split(',').length || 0} estados</div>
+                        <div className="text-gray-500 text-xs">
+                          {order.ddds === 'all' ? 'Todos DDDs' : 
+                           order.ddds?.startsWith('except:') ? 'DDDs exceto alguns' : 
+                           'DDDs específicos'}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{order.delivered_quantity}/{order.total_quantity} entregues</div>
+                        <div>{order.delivered_quantity}/{order.total_quantity} leads</div>
                         <div className="text-gray-500">{order.daily_quantity}/dia</div>
                       </div>
                     </TableCell>
@@ -191,8 +199,12 @@ export default function Orders() {
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div className="font-medium">R$ {order.total_amount.toFixed(2)}</div>
-                        <div className="text-gray-500">R$ {order.unit_price.toFixed(2)}/lead</div>
+                        <div className="font-medium text-green-600">
+                          R$ {(order.total_amount - order.consumed_amount).toFixed(2)}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {creditProgress.toFixed(0)}% usado
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
