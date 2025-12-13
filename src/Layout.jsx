@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Layout({ children, currentPageName }) {
+  // Não renderizar layout para página de embed
+  if (currentPageName === 'FormEmbed') {
+    return children;
+  }
+
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [client, setClient] = useState(null);
