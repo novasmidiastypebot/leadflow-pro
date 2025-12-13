@@ -324,17 +324,18 @@ export default function Products() {
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
-              <Label htmlFor="category_id">Categoria *</Label>
-              <Select name="category_id" defaultValue={editingProduct?.category_id} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="product_category">Categoria *</Label>
+              <select
+                name="category_id"
+                defaultValue={editingProduct?.category_id}
+                required
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Selecione uma categoria</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
             </div>
             <div>
               <Label htmlFor="name">Nome do Produto *</Label>
@@ -348,16 +349,16 @@ export default function Products() {
             </div>
             <div>
               <Label htmlFor="accepted_lead_types">Tipo de Lead Aceito *</Label>
-              <Select name="accepted_lead_types" defaultValue={editingProduct?.accepted_lead_types || 'both'} required>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="both">Indiferente (PF e PJ)</SelectItem>
-                  <SelectItem value="fisica">Apenas Pessoa Física (PF)</SelectItem>
-                  <SelectItem value="juridica">Apenas Pessoa Jurídica (PJ)</SelectItem>
-                </SelectContent>
-              </Select>
+              <select
+                name="accepted_lead_types"
+                defaultValue={editingProduct?.accepted_lead_types || 'both'}
+                required
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="both">Indiferente (PF e PJ)</option>
+                <option value="fisica">Apenas Pessoa Física (PF)</option>
+                <option value="juridica">Apenas Pessoa Jurídica (PJ)</option>
+              </select>
             </div>
             <div>
               <Label htmlFor="subcategories">Subcategorias</Label>
