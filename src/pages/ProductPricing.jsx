@@ -49,9 +49,24 @@ export default function ProductPricing() {
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
-    const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-    if (profiles.length > 0) {
-      setUserProfile(profiles[0]);
+    
+    const teamMembers = await base44.entities.TeamMember.filter({ email: currentUser.email });
+    if (teamMembers.length > 0) {
+      const member = teamMembers[0];
+      const profile = {
+        client_id: member.client_id,
+        role: member.role,
+        full_name: member.name,
+        phone: member.phone,
+        status: member.status,
+        created_by: member.email,
+      };
+      setUserProfile(profile);
+    } else {
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      if (profiles.length > 0) {
+        setUserProfile(profiles[0]);
+      }
     }
   };
 
