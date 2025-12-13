@@ -1,16 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, TrendingUp, Package } from 'lucide-react';
+import { ShoppingCart, TrendingUp, Package, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { distributeLeadAutomatically } from '../components/LeadDistribution';
+import toast from 'react-hot-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export default function LeadMarketplace() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showLeadsDialog, setShowLeadsDialog] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     loadUser();
@@ -83,6 +102,44 @@ export default function LeadMarketplace() {
     
     return acc;
   }, {});
+
+  const buyLeadMutation = useMutation({
+    mutationFn: async ({ leadId, clientId }) => {
+      const leads = await base44.entities.Lead.filter({ id: leadId });
+      if (leads.length === 0) throw new Error('Lead não encontrada');
+      
+      const lead = leads[0];
+      return await distributeLeadAutomatically(lead, clientId);
+    },
+    onSuccess: () => {
+      toast.success('Lead comprada e distribuída com sucesso!');
+      queryClient.invalidateQueries(['availableLeads']);
+      setShowLeadsDialog(false);
+    },
+    onError: (error) => {
+      toast.error('Erro ao comprar lead: ' + error.message);
+    },
+  });
+
+  const handleBuyLead = async (leadId) => {
+    if (!userProfile) {
+      toast.error('Perfil não carregado');
+      return;
+    }
+    
+    if (confirm('Deseja comprar esta lead? Ela será automaticamente distribuída.')) {
+      buyLeadMutation.mutate({ leadId, clientId: userProfile.client_id });
+    }
+  };
+
+  const viewProductLeads = (productId) => {
+    setSelectedProduct(productId);
+    setShowLeadsDialog(true);
+  };
+
+  const productLeads = selectedProduct 
+    ? availableLeads.filter(l => l.product_id === selectedProduct)
+    : [];
 
   return (
     <div className="space-y-6">
@@ -185,12 +242,20 @@ export default function LeadMarketplace() {
                     </div>
                   </div>
 
-                  <Link to={createPageUrl('OrderCreate')} className="w-full">
-                    <Button className="w-full">
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1"
+                      onClick={() => viewProductLeads(group.product_id)}
+                    >
                       <ShoppingCart className="w-4 h-4 mr-2" />
-                      Comprar Agora
+                      Ver Leads
                     </Button>
-                  </Link>
+                    <Link to={createPageUrl('OrderCreate')} className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        Criar Pedido
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -211,6 +276,65 @@ export default function LeadMarketplace() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={showLeadsDialog} onOpenChange={setShowLeadsDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Leads Disponíveis - {products.find(p => p.id === selectedProduct)?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Contato</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Estado/DDD</TableHead>
+                  <TableHead>Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {productLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell className="font-medium">
+                      {lead.form_data?.Nome || lead.form_data?.name || 'Sem nome'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{lead.form_data?.['E-mail'] || lead.form_data?.email || '-'}</div>
+                        <div className="text-gray-500">{lead.form_data?.Telefone || lead.form_data?.phone || '-'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {lead.form_data?.['Possui CNPJ'] === 'Sim' ? 'PJ' : 'PF'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{lead.state || '-'}</div>
+                        <div className="text-gray-500">{lead.ddd || '-'}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button 
+                        size="sm"
+                        onClick={() => handleBuyLead(lead.id)}
+                        disabled={buyLeadMutation.isLoading}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Comprar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
