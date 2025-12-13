@@ -81,9 +81,19 @@ export default function AdminUsers() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.UserProfile.update(id, data),
+    mutationFn: async ({ id, data, oldEmail, newEmail }) => {
+      // Se o e-mail mudou, atualizar o usuário
+      if (oldEmail !== newEmail) {
+        const existingUsers = await base44.entities.User.filter({ email: oldEmail });
+        if (existingUsers[0]) {
+          await base44.entities.User.update(existingUsers[0].id, { email: newEmail });
+        }
+      }
+      return base44.entities.UserProfile.update(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
+      queryClient.invalidateQueries(['all-users']);
       setShowDialog(false);
       setEditingProfile(null);
       toast.success('Perfil atualizado com sucesso!');
@@ -93,6 +103,7 @@ export default function AdminUsers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const userEmail = formData.get('user_email');
     const data = {
       client_id: formData.get('client_id'),
       role: formData.get('role'),
@@ -103,9 +114,13 @@ export default function AdminUsers() {
     };
 
     if (editingProfile) {
-      updateProfileMutation.mutate({ id: editingProfile.id, data });
+      updateProfileMutation.mutate({ 
+        id: editingProfile.id, 
+        data,
+        oldEmail: editingProfile.created_by,
+        newEmail: userEmail
+      });
     } else {
-      const userEmail = formData.get('user_email');
       createProfileMutation.mutate({ ...data, user_email: userEmail });
     }
   };
@@ -203,7 +218,6 @@ export default function AdminUsers() {
                 type="email"
                 placeholder="usuario@exemplo.com"
                 defaultValue={editingProfile?.created_by || ''}
-                disabled={!!editingProfile}
                 required
               />
             </div>
