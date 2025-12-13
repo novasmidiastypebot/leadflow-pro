@@ -98,21 +98,32 @@ export default function OrderCreate() {
 
   const createOrderMutation = useMutation({
     mutationFn: async (order) => {
+      console.log('Criando pedido com dados:', order);
       return await base44.entities.Order.create(order);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['orders']);
       navigate(createPageUrl('Orders'));
     },
+    onError: (error) => {
+      console.error('Erro ao criar pedido:', error);
+      alert('Erro ao criar pedido: ' + (error.message || 'Erro desconhecido'));
+    },
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     const clientId = user?.role === 'admin' ? selectedClientId : userProfile?.client_id;
+    
+    if (!clientId) {
+      alert('Cliente não identificado. Recarregue a página.');
+      return;
+    }
+    
     const quantity = parseInt(totalQuantity);
     const dailyQty = parseInt(dailyQuantity);
-    const amount = totalAmount ? parseFloat(totalAmount) : 0;
+    const amount = user?.role === 'admin' ? (totalAmount ? parseFloat(totalAmount) : 0) : 0;
     
     // Montar string de DDDs
     let dddsString = 'all';
@@ -130,19 +141,20 @@ export default function OrderCreate() {
       ddds: dddsString,
       total_quantity: quantity,
       daily_quantity: dailyQty,
-      delivered_quantity: 0,
       total_amount: amount,
-      consumed_amount: 0,
       status: amount > 0 ? 'active' : 'pending_payment',
       distribution_mode: distributionMode,
-      assigned_to: distributionMode !== 'manual' ? user.email : null,
-      notification_90_sent: false,
     };
     
     if (selectedCategory) {
       order.category_id = selectedCategory;
     }
     
+    if (distributionMode !== 'manual') {
+      order.assigned_to = user.email;
+    }
+    
+    console.log('Submetendo pedido:', order);
     createOrderMutation.mutate(order);
   };
 
