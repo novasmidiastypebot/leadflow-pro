@@ -92,6 +92,10 @@ export default function Orders() {
     cancelled: 'Cancelado',
   };
 
+  console.log('Renderizando Orders - userProfile:', userProfile);
+  console.log('Renderizando Orders - orders:', orders);
+  console.log('Renderizando Orders - products:', products);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
