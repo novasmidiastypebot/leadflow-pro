@@ -195,23 +195,18 @@ export default function AdminUsers() {
             <DialogTitle>{editingProfile ? 'Editar Perfil' : 'Novo Perfil'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {editingProfile ? (
-              <div>
-                <Label>Email do Usuário</Label>
-                <Input value={editingProfile.created_by} disabled />
-              </div>
-            ) : (
-              <div>
-                <Label htmlFor="user_email">Email do Usuário *</Label>
-                <Input
-                  id="user_email"
-                  name="user_email"
-                  type="email"
-                  placeholder="usuario@exemplo.com"
-                  required
-                />
-              </div>
-            )}
+            <div>
+              <Label htmlFor="user_email">Email do Usuário *</Label>
+              <Input
+                id="user_email"
+                name="user_email"
+                type="email"
+                placeholder="usuario@exemplo.com"
+                defaultValue={editingProfile?.created_by || ''}
+                disabled={!!editingProfile}
+                required
+              />
+            </div>
             <div>
               <Label htmlFor="full_name">Nome Completo</Label>
               <Input
