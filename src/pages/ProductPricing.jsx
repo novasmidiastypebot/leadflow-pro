@@ -26,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, DollarSign, X } from 'lucide-react';
+import { Plus, Pencil, DollarSign, X, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -44,6 +44,7 @@ export default function ProductPricing() {
   const [selectedStates, setSelectedStates] = useState([]);
   const [dddList, setDddList] = useState([]);
   const [currentDdd, setCurrentDdd] = useState('');
+  const [selectedPricings, setSelectedPricings] = useState([]);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -105,6 +106,25 @@ export default function ProductPricing() {
       queryClient.invalidateQueries(['pricings']);
       setShowDialog(false);
       setEditingPricing(null);
+    },
+  });
+
+  const deletePricingMutation = useMutation({
+    mutationFn: (id) => base44.entities.ProductPricing.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pricings']);
+    },
+  });
+
+  const deleteBulkMutation = useMutation({
+    mutationFn: async (ids) => {
+      for (const id of ids) {
+        await base44.entities.ProductPricing.delete(id);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pricings']);
+      setSelectedPricings([]);
     },
   });
 
@@ -186,6 +206,32 @@ export default function ProductPricing() {
     setShowDialog(true);
   };
 
+  const togglePricingSelection = (id) => {
+    setSelectedPricings(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllPricings = () => {
+    if (selectedPricings.length === pricings.length) {
+      setSelectedPricings([]);
+    } else {
+      setSelectedPricings(pricings.map(p => p.id));
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (confirm(`Tem certeza que deseja deletar ${selectedPricings.length} precificação(ões)?`)) {
+      deleteBulkMutation.mutate(selectedPricings);
+    }
+  };
+
+  const handleDeleteSingle = (id) => {
+    if (confirm('Tem certeza que deseja deletar esta precificação?')) {
+      deletePricingMutation.mutate(id);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -193,10 +239,18 @@ export default function ProductPricing() {
           <h1 className="text-3xl font-bold text-gray-900">Precificação de Produtos</h1>
           <p className="text-gray-600 mt-1">Configure os preços por estado/DDD/tipo</p>
         </div>
-        <Button onClick={() => openDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Precificação
-        </Button>
+        <div className="flex gap-2">
+          {selectedPricings.length > 0 && (
+            <Button variant="destructive" onClick={handleDeleteSelected}>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Deletar Selecionados ({selectedPricings.length})
+            </Button>
+          )}
+          <Button onClick={() => openDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Precificação
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -204,6 +258,12 @@ export default function ProductPricing() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={selectedPricings.length === pricings.length && pricings.length > 0}
+                    onCheckedChange={toggleAllPricings}
+                  />
+                </TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Estado</TableHead>
@@ -218,6 +278,12 @@ export default function ProductPricing() {
                 const product = products.find(p => p.id === pricing.product_id);
                 return (
                   <TableRow key={pricing.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedPricings.includes(pricing.id)}
+                        onCheckedChange={() => togglePricingSelection(pricing.id)}
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       {product?.name || 'Produto não encontrado'}
                     </TableCell>
@@ -239,13 +305,22 @@ export default function ProductPricing() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDialog(pricing)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openDialog(pricing)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSingle(pricing.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
