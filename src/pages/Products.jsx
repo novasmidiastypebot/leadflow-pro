@@ -62,7 +62,7 @@ export default function Products() {
         };
         setUserProfile(profile);
       } else {
-        const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+        const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email }, 'created_date');
         if (profiles.length > 0) {
           setUserProfile(profiles[0]);
         }

@@ -63,11 +63,13 @@ export default function Layout({ children, currentPageName }) {
         setClient(clients[0]);
       }
     } else {
-      // Se não encontrar, tenta na UserProfile (legado)
-      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      // Se não encontrar, tenta na UserProfile (legado) - ordenar por data de criação
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email }, 'created_date');
       if (profiles.length > 0) {
-        setUserProfile(profiles[0]);
-        const clients = await base44.entities.Client.filter({ id: profiles[0].client_id });
+        // Usar o perfil mais antigo (criado primeiro)
+        const oldestProfile = profiles[0];
+        setUserProfile(oldestProfile);
+        const clients = await base44.entities.Client.filter({ id: oldestProfile.client_id });
         if (clients.length > 0) {
           setClient(clients[0]);
         }

@@ -55,11 +55,13 @@ export default function FormTemplates() {
       console.log('Using TeamMember profile:', profile);
       setUserProfile(profile);
     } else {
-      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email }, 'created_date');
       console.log('UserProfiles found:', profiles);
       if (profiles.length > 0) {
-        console.log('Using UserProfile:', profiles[0]);
-        setUserProfile(profiles[0]);
+        // Usar o perfil mais antigo (criado primeiro)
+        const oldestProfile = profiles[0];
+        console.log('Using UserProfile:', oldestProfile);
+        setUserProfile(oldestProfile);
       }
     }
   };

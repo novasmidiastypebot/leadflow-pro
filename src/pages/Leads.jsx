@@ -65,11 +65,13 @@ export default function Leads() {
       const emails = await getAccessibleUsers(currentUser, profile);
       setAccessibleEmails(emails);
     } else {
-      // Se não encontrar, tenta na UserProfile (legado)
-      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      // Se não encontrar, tenta na UserProfile (legado) - ordenar por data de criação
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email }, 'created_date');
       if (profiles.length > 0) {
-        setUserProfile(profiles[0]);
-        const emails = await getAccessibleUsers(currentUser, profiles[0]);
+        // Usar o perfil mais antigo (criado primeiro)
+        const oldestProfile = profiles[0];
+        setUserProfile(oldestProfile);
+        const emails = await getAccessibleUsers(currentUser, oldestProfile);
         setAccessibleEmails(emails);
       }
     }

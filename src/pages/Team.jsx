@@ -32,8 +32,8 @@ export default function Team() {
       };
       setUserProfile(profile);
     } else {
-      // Se não encontrar, tenta na UserProfile (legado)
-      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      // Se não encontrar, tenta na UserProfile (legado) - ordenar por data de criação
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email }, 'created_date');
       if (profiles.length > 0) {
         setUserProfile(profiles[0]);
       }
