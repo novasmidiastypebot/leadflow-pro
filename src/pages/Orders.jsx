@@ -49,14 +49,23 @@ export default function Orders() {
     }
   };
 
-  const { data: orders = [] } = useQuery({
+  const { data: orders = [], refetch } = useQuery({
     queryKey: ['orders', userProfile?.client_id],
     queryFn: async () => {
       if (!userProfile) return [];
-      return await base44.entities.Order.filter({ client_id: userProfile.client_id }, '-created_date');
+      console.log('Buscando pedidos para client_id:', userProfile.client_id);
+      const result = await base44.entities.Order.filter({ client_id: userProfile.client_id }, '-created_date');
+      console.log('Pedidos encontrados:', result);
+      return result;
     },
     enabled: !!userProfile,
   });
+
+  useEffect(() => {
+    if (userProfile) {
+      refetch();
+    }
+  }, [userProfile, refetch]);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products', userProfile?.client_id],
