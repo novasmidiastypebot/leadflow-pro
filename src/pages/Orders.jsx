@@ -50,15 +50,25 @@ export default function Orders() {
   };
 
   const { data: orders = [], refetch } = useQuery({
-    queryKey: ['orders', userProfile?.client_id],
+    queryKey: ['orders', userProfile?.client_id, user?.role],
     queryFn: async () => {
+      console.log('Buscando pedidos - user.role:', user?.role, 'userProfile:', userProfile);
+      
+      // Se for admin, buscar todos os pedidos
+      if (user?.role === 'admin') {
+        const result = await base44.entities.Order.list('-created_date');
+        console.log('Admin - Todos os pedidos encontrados:', result);
+        return result;
+      }
+      
+      // Se não for admin, buscar por client_id
       if (!userProfile) return [];
       console.log('Buscando pedidos para client_id:', userProfile.client_id);
       const result = await base44.entities.Order.filter({ client_id: userProfile.client_id }, '-created_date');
       console.log('Pedidos encontrados:', result);
       return result;
     },
-    enabled: !!userProfile,
+    enabled: !!user && (user.role === 'admin' || !!userProfile),
   });
 
   useEffect(() => {
