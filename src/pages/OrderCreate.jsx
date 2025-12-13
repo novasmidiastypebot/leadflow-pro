@@ -36,10 +36,9 @@ export default function OrderCreate() {
   const [specificDdds, setSpecificDdds] = useState('');
   const [totalQuantity, setTotalQuantity] = useState('');
   const [dailyQuantity, setDailyQuantity] = useState('');
-  const [unitPrice, setUnitPrice] = useState(0);
   const [distributionMode, setDistributionMode] = useState('manual');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [paidAmount, setPaidAmount] = useState('');
+  const [totalAmount, setTotalAmount] = useState('');
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -47,12 +46,6 @@ export default function OrderCreate() {
   useEffect(() => {
     loadUser();
   }, []);
-
-  useEffect(() => {
-    if (selectedProduct && leadType && selectedStates.length > 0) {
-      loadPricing();
-    }
-  }, [selectedProduct, leadType, selectedStates]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
@@ -78,31 +71,7 @@ export default function OrderCreate() {
     }
   };
 
-  const loadPricing = async () => {
-    // Determinar quais tipos buscar
-    const typesToFetch = leadType === 'ambos' ? ['juridica', 'fisica'] : [leadType];
-    
-    // Buscar preços para todos os tipos necessários
-    const allPricings = [];
-    for (const type of typesToFetch) {
-      const pricings = await base44.entities.ProductPricing.filter({
-        product_id: selectedProduct,
-        lead_type: type,
-      });
-      allPricings.push(...pricings);
-    }
-    
-    const statePricings = allPricings.filter(p => 
-      selectedStates.includes(p.state) && (!p.ddd || p.ddd === '')
-    );
-    
-    if (statePricings.length > 0) {
-      const avgPrice = statePricings.reduce((sum, p) => sum + p.price, 0) / statePricings.length;
-      setUnitPrice(avgPrice);
-    } else {
-      setUnitPrice(0);
-    }
-  };
+
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -128,11 +97,8 @@ export default function OrderCreate() {
   });
 
   const createOrderMutation = useMutation({
-    mutationFn: async (orders) => {
-      if (Array.isArray(orders)) {
-        return await base44.entities.Order.bulkCreate(orders);
-      }
-      return await base44.entities.Order.create(orders);
+    mutationFn: async (order) => {
+      return await base44.entities.Order.create(order);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['orders']);
@@ -144,56 +110,37 @@ export default function OrderCreate() {
     e.preventDefault();
     
     const clientId = user?.role === 'admin' ? selectedClientId : userProfile?.client_id;
-    const quantityPerOrder = parseInt(totalQuantity);
+    const quantity = parseInt(totalQuantity);
     const dailyQty = parseInt(dailyQuantity);
-    const paid = paidAmount ? parseFloat(paidAmount) : 0;
+    const amount = totalAmount ? parseFloat(totalAmount) : 0;
     
-    // Determinar tipos de lead a usar
-    const leadTypesToUse = leadType === 'ambos' ? ['juridica', 'fisica'] : [leadType];
-    
-    // Determinar DDDs a usar
-    let dddsToUse = [null]; // null = todo o estado
+    // Montar string de DDDs
+    let dddsString = 'all';
     if (dddMode === 'specific' && specificDdds) {
-      dddsToUse = specificDdds.split(',').map(d => d.trim()).filter(d => d);
+      dddsString = specificDdds;
     } else if (dddMode === 'except' && excludedDdds) {
-      // Buscar todos os DDDs possíveis e excluir os listados
-      const allDdds = ['11','12','13','14','15','16','17','18','19','21','22','24','27','28',
-        '31','32','33','34','35','37','38','41','42','43','44','45','46','47','48','49',
-        '51','53','54','55','61','62','63','64','65','66','67','68','69','71','73','74',
-        '75','77','79','81','82','83','84','85','86','87','88','89','91','92','93','94',
-        '95','96','97','98','99'];
-      const excluded = excludedDdds.split(',').map(d => d.trim()).filter(d => d);
-      dddsToUse = allDdds.filter(d => !excluded.includes(d));
+      dddsString = `except:${excludedDdds}`;
     }
     
-    // Criar pedidos para cada combinação de tipo/estado/DDD
-    const orders = [];
-    for (const type of leadTypesToUse) {
-      for (const state of selectedStates) {
-        for (const ddd of dddsToUse) {
-          const totalAmount = quantityPerOrder * unitPrice;
-          orders.push({
-            client_id: clientId,
-            product_id: selectedProduct,
-            category_id: selectedCategory || null,
-            lead_type: type,
-            state: state,
-            ddd: ddd,
-            total_quantity: quantityPerOrder,
-            daily_quantity: dailyQty,
-            delivered_quantity: 0,
-            unit_price: unitPrice,
-            total_amount: totalAmount,
-            paid_amount: paid,
-            status: paid >= totalAmount ? 'active' : 'pending_payment',
-            distribution_mode: distributionMode,
-            assigned_to: distributionMode !== 'manual' ? user.email : null,
-          });
-        }
-      }
-    }
+    const order = {
+      client_id: clientId,
+      product_id: selectedProduct,
+      category_id: selectedCategory || null,
+      lead_types: leadType,
+      states: selectedStates.join(','),
+      ddds: dddsString,
+      total_quantity: quantity,
+      daily_quantity: dailyQty,
+      delivered_quantity: 0,
+      total_amount: amount,
+      consumed_amount: 0,
+      status: amount > 0 ? 'active' : 'pending_payment',
+      distribution_mode: distributionMode,
+      assigned_to: distributionMode !== 'manual' ? user.email : null,
+      notification_90_sent: false,
+    };
     
-    createOrderMutation.mutate(orders);
+    createOrderMutation.mutate(order);
   };
 
   const toggleState = (state) => {
@@ -210,11 +157,7 @@ export default function OrderCreate() {
     }
   };
 
-  const leadTypeMultiplier = leadType === 'ambos' ? 2 : 1;
-  const dddCount = dddMode === 'specific' && specificDdds ? specificDdds.split(',').length : 
-                   dddMode === 'except' && excludedDdds ? (100 - excludedDdds.split(',').length) : 1;
-  const totalOrders = selectedStates.length * dddCount * leadTypeMultiplier;
-  const totalAmount = totalQuantity && unitPrice ? parseFloat(totalQuantity) * unitPrice * totalOrders : 0;
+
 
   return (
     <div className="space-y-6">
@@ -368,18 +311,18 @@ export default function OrderCreate() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Quantidade por Pedido *</Label>
+                    <Label>Quantidade Total do Pedido *</Label>
                     <Input
                       type="number"
                       value={totalQuantity}
                       onChange={(e) => setTotalQuantity(e.target.value)}
-                      placeholder="Ex: 100"
+                      placeholder="Ex: 1000"
                       required
                       min="1"
                       className="mt-1"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Quantidade para cada estado/DDD
+                      Total de leads do pedido
                     </p>
                   </div>
 
@@ -399,17 +342,18 @@ export default function OrderCreate() {
 
                 {user?.role === 'admin' && (
                   <div>
-                    <Label>Valor Pago</Label>
+                    <Label>Saldo/Crédito do Pedido *</Label>
                     <Input
                       type="number"
                       step="0.01"
-                      value={paidAmount}
-                      onChange={(e) => setPaidAmount(e.target.value)}
-                      placeholder="Ex: 1000.00"
+                      value={totalAmount}
+                      onChange={(e) => setTotalAmount(e.target.value)}
+                      placeholder="Ex: 10000.00"
                       className="mt-1"
+                      required={user?.role === 'admin'}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Deixe vazio para status "Pendente de Pagamento"
+                      Valor total creditado para o pedido
                     </p>
                   </div>
                 )}
@@ -446,35 +390,35 @@ export default function OrderCreate() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Estados Selecionados:</span>
+                  <span className="text-gray-600">Tipo de Lead:</span>
+                  <span className="font-medium capitalize">{leadType === 'ambos' ? 'PJ e PF' : leadType === 'juridica' ? 'PJ' : 'PF'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Estados Aceitos:</span>
                   <span className="font-medium">{selectedStates.length}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Total de Pedidos:</span>
-                  <span className="font-medium">{totalOrders}</span>
+                  <span className="text-gray-600">DDDs:</span>
+                  <span className="font-medium">
+                    {dddMode === 'all' ? 'Todos' : dddMode === 'specific' ? `Específicos (${specificDdds.split(',').length})` : `Exceto (${excludedDdds.split(',').length})`}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Preço Unitário:</span>
-                  <span className="font-medium">R$ {unitPrice.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Qtd por Pedido:</span>
+                  <span className="text-gray-600">Quantidade Total:</span>
                   <span className="font-medium">{totalQuantity || 0} leads</span>
                 </div>
-                <div className="border-t pt-4">
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Total Geral:</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      R$ {totalAmount.toFixed(2)}
-                    </span>
-                  </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Quantidade Diária:</span>
+                  <span className="font-medium">{dailyQuantity || 0} leads/dia</span>
                 </div>
-
-                {unitPrice === 0 && selectedProduct && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <p className="text-sm text-yellow-800">
-                      Preço não configurado para este produto/estado/tipo
-                    </p>
+                {user?.role === 'admin' && (
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between">
+                      <span className="font-semibold">Crédito Total:</span>
+                      <span className="text-2xl font-bold text-blue-600">
+                        R$ {totalAmount ? parseFloat(totalAmount).toFixed(2) : '0.00'}
+                      </span>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -484,10 +428,10 @@ export default function OrderCreate() {
               type="submit" 
               className="w-full" 
               size="lg" 
-              disabled={!unitPrice || !totalQuantity || selectedStates.length === 0 || (user?.role === 'admin' && !selectedClientId)}
+              disabled={!totalQuantity || !dailyQuantity || selectedStates.length === 0 || (user?.role === 'admin' && (!selectedClientId || !totalAmount))}
             >
               <Save className="w-5 h-5 mr-2" />
-              Criar {totalOrders} Pedido{totalOrders > 1 ? 's' : ''}
+              Criar Pedido
             </Button>
           </div>
         </div>
