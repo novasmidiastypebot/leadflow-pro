@@ -77,14 +77,16 @@ export default function FormEmbed() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Enviado com sucesso!</h2>
-            <p className="text-gray-600">Obrigado pelo seu interesse. Entraremos em contato em breve.</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center p-8 text-center" style={{ backgroundColor: formTemplate.style_config?.form_bg_color || '#ffffff' }}>
+        <div>
+          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2" style={{ color: formTemplate.style_config?.title_color || '#111827' }}>
+            Enviado com sucesso!
+          </h2>
+          <p style={{ color: formTemplate.style_config?.field_text_color || '#374151' }}>
+            Obrigado pelo seu interesse. Entraremos em contato em breve.
+          </p>
+        </div>
       </div>
     );
   }
@@ -92,21 +94,20 @@ export default function FormEmbed() {
   const style = formTemplate.style_config || {};
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        <Card style={{ backgroundColor: style.form_bg_color || '#ffffff' }}>
-          <CardHeader>
-            <CardTitle style={{ color: style.title_color || '#111827' }}>
-              {formTemplate.name}
-            </CardTitle>
-            {formTemplate.description && (
-              <p className="text-sm mt-2" style={{ color: style.field_text_color || '#374151' }}>
-                {formTemplate.description}
-              </p>
-            )}
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="p-6" style={{ backgroundColor: style.form_bg_color || '#ffffff' }}>
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-xl font-bold" style={{ color: style.title_color || '#111827' }}>
+            {formTemplate.name}
+          </h3>
+          {formTemplate.description && (
+            <p className="text-sm mt-2" style={{ color: style.field_text_color || '#374151' }}>
+              {formTemplate.description}
+            </p>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
               {fields.map((field) => (
                 <div key={field.id}>
                   <Label style={{ color: style.field_text_color || '#374151' }}>
@@ -194,8 +195,6 @@ export default function FormEmbed() {
                 {createLeadMutation.isPending ? 'Enviando...' : (style.button_text || 'Enviar')}
               </Button>
             </form>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
