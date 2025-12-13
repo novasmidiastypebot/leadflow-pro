@@ -40,10 +40,10 @@ export default function LeadMarketplace() {
     }
   };
 
-  const { data: inventory = [] } = useQuery({
-    queryKey: ['inventory'],
+  const { data: availableLeads = [] } = useQuery({
+    queryKey: ['availableLeads'],
     queryFn: async () => {
-      return await base44.entities.LeadInventory.list();
+      return await base44.entities.Lead.filter({ is_distributed: false });
     },
   });
 
@@ -61,17 +61,26 @@ export default function LeadMarketplace() {
     },
   });
 
-  // Agrupar inventário por produto
-  const groupedInventory = inventory.reduce((acc, item) => {
-    if (!acc[item.product_id]) {
-      acc[item.product_id] = {
-        product_id: item.product_id,
+  // Agrupar leads disponíveis por produto
+  const groupedInventory = availableLeads.reduce((acc, lead) => {
+    if (!lead.product_id) return acc;
+    
+    if (!acc[lead.product_id]) {
+      acc[lead.product_id] = {
+        product_id: lead.product_id,
         total_available: 0,
-        items: []
+        items: [],
+        leads: []
       };
     }
-    acc[item.product_id].total_available += item.available_quantity;
-    acc[item.product_id].items.push(item);
+    acc[lead.product_id].total_available += 1;
+    acc[lead.product_id].leads.push(lead);
+    
+    // Agrupar por estado para exibição
+    if (lead.state && !acc[lead.product_id].items.find(i => i.state === lead.state)) {
+      acc[lead.product_id].items.push({ state: lead.state });
+    }
+    
     return acc;
   }, {});
 
@@ -97,7 +106,7 @@ export default function LeadMarketplace() {
               <div>
                 <p className="text-sm text-gray-600">Total de Leads Disponíveis</p>
                 <p className="text-3xl font-bold text-gray-900 mt-1">
-                  {inventory.reduce((sum, item) => sum + item.available_quantity, 0)}
+                  {availableLeads.length}
                 </p>
               </div>
               <Package className="w-8 h-8 text-blue-600" />
@@ -189,7 +198,7 @@ export default function LeadMarketplace() {
         })}
       </div>
 
-      {inventory.length === 0 && (
+      {availableLeads.length === 0 && (
         <Card>
           <CardContent className="p-12 text-center">
             <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
