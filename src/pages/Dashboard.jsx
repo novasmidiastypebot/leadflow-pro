@@ -18,11 +18,31 @@ export default function Dashboard() {
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
-    const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-    if (profiles.length > 0) {
-      setUserProfile(profiles[0]);
-      const emails = await getAccessibleUsers(currentUser, profiles[0]);
+    
+    // Primeiro tenta buscar na tabela TeamMember
+    const teamMembers = await base44.entities.TeamMember.filter({ email: currentUser.email });
+    if (teamMembers.length > 0) {
+      const member = teamMembers[0];
+      // Converte TeamMember para formato UserProfile para compatibilidade
+      const profile = {
+        client_id: member.client_id,
+        role: member.role,
+        full_name: member.name,
+        phone: member.phone,
+        status: member.status,
+        created_by: member.email,
+      };
+      setUserProfile(profile);
+      const emails = await getAccessibleUsers(currentUser, profile);
       setAccessibleEmails(emails);
+    } else {
+      // Se não encontrar, tenta na UserProfile (legado)
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      if (profiles.length > 0) {
+        setUserProfile(profiles[0]);
+        const emails = await getAccessibleUsers(currentUser, profiles[0]);
+        setAccessibleEmails(emails);
+      }
     }
   };
 
