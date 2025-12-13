@@ -14,7 +14,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, GripVertical, Save, Eye } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Trash2, GripVertical, Save, Eye, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
@@ -26,6 +36,8 @@ export default function FormBuilder() {
   const [productId, setProductId] = useState('');
   const [fields, setFields] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [hasLeads, setHasLeads] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -39,6 +51,7 @@ export default function FormBuilder() {
   useEffect(() => {
     if (formId && userProfile) {
       loadForm();
+      checkFormLeads();
     } else if (!formId && userProfile) {
       // Adicionar campos obrigatórios para novos formulários
       setFields([
@@ -106,6 +119,11 @@ export default function FormBuilder() {
       
       setFields(formFields);
     }
+  };
+
+  const checkFormLeads = async () => {
+    const leads = await base44.entities.Lead.filter({ form_template_id: formId });
+    setHasLeads(leads.length > 0);
   };
 
   const { data: products = [] } = useQuery({
@@ -192,12 +210,28 @@ export default function FormBuilder() {
   const removeField = (index) => {
     const field = fields[index];
     // Não permitir remover campos padrão (Nome e E-mail)
-    if (field.is_default) {
+    if (field.label === 'Nome' || field.label === 'E-mail') {
       alert('Este campo é obrigatório e não pode ser removido.');
       return;
     }
     setFields(fields.filter((_, i) => i !== index));
   };
+
+  const deleteFormMutation = useMutation({
+    mutationFn: async () => {
+      // Delete fields first
+      const existingFields = await base44.entities.FormField.filter({ form_template_id: formId });
+      for (const field of existingFields) {
+        await base44.entities.FormField.delete(field.id);
+      }
+      // Delete form
+      await base44.entities.FormTemplate.delete(formId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['forms']);
+      navigate(createPageUrl('FormTemplates'));
+    },
+  });
 
   const handleSave = () => {
     const data = {
@@ -213,6 +247,18 @@ export default function FormBuilder() {
     } else {
       createFormMutation.mutate(data);
     }
+  };
+
+  const handleDelete = () => {
+    if (hasLeads) {
+      alert('Não é possível deletar este formulário pois existem leads geradas por ele.');
+      return;
+    }
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    deleteFormMutation.mutate();
   };
 
   const fieldTypes = [
@@ -238,6 +284,12 @@ export default function FormBuilder() {
           <p className="text-gray-600 mt-1">Configure os campos do seu formulário</p>
         </div>
         <div className="flex gap-2">
+          {formId && (
+            <Button variant="destructive" onClick={handleDelete} disabled={hasLeads}>
+              <Trash className="w-4 h-4 mr-2" />
+              Deletar
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setShowPreview(!showPreview)}>
             <Eye className="w-4 h-4 mr-2" />
             {showPreview ? 'Ocultar' : 'Visualizar'} Preview
@@ -313,7 +365,7 @@ export default function FormBuilder() {
                         {field.is_default && <span className="text-blue-600 ml-2 text-xs">(Obrigatório)</span>}
                       </span>
                     </div>
-                    {!field.is_default && (
+                    {field.label !== 'Nome' && field.label !== 'E-mail' && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -380,7 +432,7 @@ export default function FormBuilder() {
                     <Checkbox
                       checked={field.is_required}
                       onCheckedChange={(checked) => updateField(index, 'is_required', checked)}
-                      disabled={field.is_default}
+                      disabled={field.label === 'Nome' || field.label === 'E-mail'}
                     />
                     <Label className="text-sm">Campo obrigatório</Label>
                   </div>
@@ -456,7 +508,25 @@ export default function FormBuilder() {
             </Card>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+        </div>
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja deletar este formulário? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            Deletar
+          </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+        </AlertDialog>
+        );
+        }
