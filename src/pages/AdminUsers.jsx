@@ -57,12 +57,26 @@ export default function AdminUsers() {
   });
 
   const createProfileMutation = useMutation({
-    mutationFn: (data) => base44.entities.UserProfile.create(data),
+    mutationFn: async (data) => {
+      // First check if user exists
+      const existingUsers = await base44.entities.User.filter({ email: data.user_email });
+      
+      if (existingUsers.length === 0) {
+        throw new Error('Usuário não encontrado. O usuário precisa ser convidado primeiro através do sistema de convites.');
+      }
+      
+      // Create profile with the user's email as created_by
+      const { user_email, ...profileData } = data;
+      return base44.entities.UserProfile.create(profileData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
       setShowDialog(false);
       setEditingProfile(null);
       toast.success('Perfil criado com sucesso!');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Erro ao criar perfil');
     },
   });
 
@@ -76,7 +90,7 @@ export default function AdminUsers() {
     },
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = {
@@ -90,7 +104,8 @@ export default function AdminUsers() {
     if (editingProfile) {
       updateProfileMutation.mutate({ id: editingProfile.id, data });
     } else {
-      createProfileMutation.mutate(data);
+      const userEmail = formData.get('user_email');
+      createProfileMutation.mutate({ ...data, user_email: userEmail });
     }
   };
 
@@ -179,10 +194,21 @@ export default function AdminUsers() {
             <DialogTitle>{editingProfile ? 'Editar Perfil' : 'Novo Perfil'}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {editingProfile && (
+            {editingProfile ? (
               <div>
                 <Label>Usuário</Label>
                 <Input value={editingProfile.created_by} disabled />
+              </div>
+            ) : (
+              <div>
+                <Label htmlFor="user_email">Email do Usuário *</Label>
+                <Input
+                  id="user_email"
+                  name="user_email"
+                  type="email"
+                  placeholder="usuario@exemplo.com"
+                  required
+                />
               </div>
             )}
             <div>
