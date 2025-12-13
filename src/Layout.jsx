@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Settings,
   ShoppingCart,
-  DollarSign
+  DollarSign,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -68,6 +69,12 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Formulários', icon: FileText, path: 'FormTemplates' },
   ];
 
+  const adminMenuItems = [
+    { name: 'Gerenciar Clientes', icon: Building2, path: 'AdminClients' },
+    { name: 'Gerenciar Usuários', icon: Users, path: 'AdminUsers' },
+    { name: 'Gerenciar Pedidos', icon: Package, path: 'AdminOrders' },
+  ];
+
   const settingsItem = { name: 'Configurações', icon: Settings, path: 'Settings' };
 
   return (
@@ -96,7 +103,29 @@ export default function Layout({ children, currentPageName }) {
               <span>{item.name}</span>
             </Link>
           ))}
-          
+
+          {user?.role === 'admin' && (
+            <>
+              <div className="pt-4 pb-2 px-4">
+                <div className="text-xs font-semibold text-gray-500 uppercase">Administração</div>
+              </div>
+              {adminMenuItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={createPageUrl(item.path)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    currentPageName === item.path
+                      ? 'bg-blue-50 text-blue-700 font-medium'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </>
+          )}
+
           <Link
             to={createPageUrl(settingsItem.path)}
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${

@@ -10,6 +10,9 @@ import Orders from './pages/Orders';
 import OrderCreate from './pages/OrderCreate';
 import LeadMarketplace from './pages/LeadMarketplace';
 import ProductPricing from './pages/ProductPricing';
+import AdminClients from './pages/AdminClients';
+import AdminUsers from './pages/AdminUsers';
+import AdminOrders from './pages/AdminOrders';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +29,9 @@ export const PAGES = {
     "OrderCreate": OrderCreate,
     "LeadMarketplace": LeadMarketplace,
     "ProductPricing": ProductPricing,
+    "AdminClients": AdminClients,
+    "AdminUsers": AdminUsers,
+    "AdminOrders": AdminOrders,
 }
 
 export const pagesConfig = {
