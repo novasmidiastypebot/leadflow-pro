@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -108,6 +109,8 @@ export default function Products() {
 
   const handleSaveCategory = (e) => {
     e.preventDefault();
+    if (!userProfile) return;
+    
     const formData = new FormData(e.target);
     const data = {
       client_id: userProfile.client_id,
@@ -125,6 +128,8 @@ export default function Products() {
 
   const handleSaveProduct = (e) => {
     e.preventDefault();
+    if (!userProfile) return;
+    
     const formData = new FormData(e.target);
     const data = {
       client_id: userProfile.client_id,
@@ -143,6 +148,14 @@ export default function Products() {
       createProductMutation.mutate(data);
     }
   };
+
+  if (!userProfile) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -268,6 +281,9 @@ export default function Products() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingCategory ? 'Editar Categoria' : 'Nova Categoria'}</DialogTitle>
+            <DialogDescription>
+              {editingCategory ? 'Atualize as informações da categoria' : 'Crie uma nova categoria de produtos'}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveCategory} className="space-y-4">
             <div>
@@ -302,6 +318,9 @@ export default function Products() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{editingProduct ? 'Editar Produto' : 'Novo Produto'}</DialogTitle>
+            <DialogDescription>
+              {editingProduct ? 'Atualize as informações do produto' : 'Cadastre um novo produto no sistema'}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveProduct} className="space-y-4">
             <div>
