@@ -131,10 +131,11 @@ export default function ProductPricing() {
       const states = selectedStates.length > 0 ? selectedStates : [formData.get('state')];
       const ddds = dddList.length > 0 ? dddList : [null];
 
-      // Criar precificação para cada combinação de estado e DDD
+      // Preparar todos os registros para criação em lote
+      const pricingsToCreate = [];
       for (const state of states) {
         for (const ddd of ddds) {
-          await base44.entities.ProductPricing.create({
+          pricingsToCreate.push({
             product_id,
             lead_type,
             state,
@@ -144,6 +145,9 @@ export default function ProductPricing() {
           });
         }
       }
+
+      // Criar todos de uma vez usando bulkCreate
+      await base44.entities.ProductPricing.bulkCreate(pricingsToCreate);
       
       queryClient.invalidateQueries(['pricings']);
       setShowDialog(false);
