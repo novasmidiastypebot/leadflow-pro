@@ -106,24 +106,18 @@ export default function OrderCreate() {
     enabled: user?.role === 'admin',
   });
 
-  const targetClientId = user?.role === 'admin' ? selectedClientId : userProfile?.client_id;
-
   const { data: products = [] } = useQuery({
-    queryKey: ['products', targetClientId],
+    queryKey: ['products'],
     queryFn: async () => {
-      if (!targetClientId) return [];
-      return await base44.entities.Product.filter({ client_id: targetClientId, status: 'active' });
+      return await base44.entities.Product.filter({ status: 'active' });
     },
-    enabled: !!targetClientId,
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['categories', targetClientId],
+    queryKey: ['categories'],
     queryFn: async () => {
-      if (!targetClientId) return [];
-      return await base44.entities.ProductCategory.filter({ client_id: targetClientId, status: 'active' });
+      return await base44.entities.ProductCategory.filter({ status: 'active' });
     },
-    enabled: !!targetClientId,
   });
 
   const createOrderMutation = useMutation({
@@ -142,7 +136,7 @@ export default function OrderCreate() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const clientId = user?.role === 'admin' ? selectedClientId : userProfile.client_id;
+    const clientId = user?.role === 'admin' ? selectedClientId : userProfile?.client_id;
     const quantityPerOrder = parseInt(totalQuantity);
     const dailyQty = parseInt(dailyQuantity);
     const paid = paidAmount ? parseFloat(paidAmount) : 0;
