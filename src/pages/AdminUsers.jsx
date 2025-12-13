@@ -45,12 +45,14 @@ export default function AdminUsers() {
     },
   });
 
-  const { data: profiles = [] } = useQuery({
+  const { data: allProfiles = [] } = useQuery({
     queryKey: ['all-profiles'],
     queryFn: async () => {
-      return await base44.entities.UserProfile.filter({ role: 'master' }, '-created_date');
+      return await base44.entities.UserProfile.list('-created_date');
     },
   });
+
+  const profiles = allProfiles.filter(p => p.role === 'master');
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members'],
