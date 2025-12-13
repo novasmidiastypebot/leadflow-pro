@@ -80,9 +80,9 @@ export default function Team() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg text-gray-900">
-                      {userInfo?.full_name || 'Usuário'}
+                      {profile.full_name || userInfo?.full_name || 'Usuário'}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-2">{userInfo?.email}</p>
+                    <p className="text-sm text-gray-600 mb-2">{profile.created_by}</p>
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className={roleColors[profile.role]}>
                         {roleLabels[profile.role]}
