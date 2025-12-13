@@ -45,11 +45,15 @@ export default function Products() {
   }, []);
 
   const loadUser = async () => {
-    const currentUser = await base44.auth.me();
-    setUser(currentUser);
-    const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-    if (profiles.length > 0) {
-      setUserProfile(profiles[0]);
+    try {
+      const currentUser = await base44.auth.me();
+      setUser(currentUser);
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      if (profiles.length > 0) {
+        setUserProfile(profiles[0]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar usuário:', error);
     }
   };
 
