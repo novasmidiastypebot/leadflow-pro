@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Save, Calculator } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 
@@ -28,12 +30,16 @@ export default function OrderCreate() {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [leadType, setLeadType] = useState('juridica');
-  const [state, setState] = useState('');
-  const [ddd, setDdd] = useState('');
+  const [selectedStates, setSelectedStates] = useState([]);
+  const [dddMode, setDddMode] = useState('all'); // 'all', 'specific', 'except'
+  const [excludedDdds, setExcludedDdds] = useState('');
+  const [specificDdds, setSpecificDdds] = useState('');
   const [totalQuantity, setTotalQuantity] = useState('');
   const [dailyQuantity, setDailyQuantity] = useState('');
   const [unitPrice, setUnitPrice] = useState(0);
   const [distributionMode, setDistributionMode] = useState('manual');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [paidAmount, setPaidAmount] = useState('');
   
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -43,10 +49,10 @@ export default function OrderCreate() {
   }, []);
 
   useEffect(() => {
-    if (selectedProduct && leadType && state) {
+    if (selectedProduct && leadType && selectedStates.length > 0) {
       loadPricing();
     }
-  }, [selectedProduct, leadType, state, ddd]);
+  }, [selectedProduct, leadType, selectedStates]);
 
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
@@ -73,50 +79,60 @@ export default function OrderCreate() {
   };
 
   const loadPricing = async () => {
+    // Buscar preço médio dos estados selecionados
     const pricings = await base44.entities.ProductPricing.filter({
       product_id: selectedProduct,
       lead_type: leadType,
-      state: state,
     });
     
-    // Buscar preço específico por DDD se fornecido
-    if (ddd) {
-      const specificPricing = pricings.find(p => p.ddd === ddd);
-      if (specificPricing) {
-        setUnitPrice(specificPricing.price);
-        return;
-      }
-    }
+    const statePricings = pricings.filter(p => 
+      selectedStates.includes(p.state) && (!p.ddd || p.ddd === '')
+    );
     
-    // Buscar preço geral do estado
-    const statePricing = pricings.find(p => !p.ddd || p.ddd === '');
-    if (statePricing) {
-      setUnitPrice(statePricing.price);
+    if (statePricings.length > 0) {
+      const avgPrice = statePricings.reduce((sum, p) => sum + p.price, 0) / statePricings.length;
+      setUnitPrice(avgPrice);
     } else {
       setUnitPrice(0);
     }
   };
 
-  const { data: products = [] } = useQuery({
-    queryKey: ['products', userProfile?.client_id],
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
     queryFn: async () => {
-      if (!userProfile) return [];
-      return await base44.entities.Product.filter({ client_id: userProfile.client_id, status: 'active' });
+      if (user?.role !== 'admin') return [];
+      return await base44.entities.Client.filter({ status: 'active' });
     },
-    enabled: !!userProfile,
+    enabled: user?.role === 'admin',
+  });
+
+  const targetClientId = user?.role === 'admin' ? selectedClientId : userProfile?.client_id;
+
+  const { data: products = [] } = useQuery({
+    queryKey: ['products', targetClientId],
+    queryFn: async () => {
+      if (!targetClientId) return [];
+      return await base44.entities.Product.filter({ client_id: targetClientId, status: 'active' });
+    },
+    enabled: !!targetClientId,
   });
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['categories', userProfile?.client_id],
+    queryKey: ['categories', targetClientId],
     queryFn: async () => {
-      if (!userProfile) return [];
-      return await base44.entities.ProductCategory.filter({ client_id: userProfile.client_id, status: 'active' });
+      if (!targetClientId) return [];
+      return await base44.entities.ProductCategory.filter({ client_id: targetClientId, status: 'active' });
     },
-    enabled: !!userProfile,
+    enabled: !!targetClientId,
   });
 
   const createOrderMutation = useMutation({
-    mutationFn: (data) => base44.entities.Order.create(data),
+    mutationFn: async (orders) => {
+      if (Array.isArray(orders)) {
+        return await base44.entities.Order.bulkCreate(orders);
+      }
+      return await base44.entities.Order.create(orders);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['orders']);
       navigate(createPageUrl('Orders'));
@@ -126,28 +142,71 @@ export default function OrderCreate() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    const totalAmount = parseFloat(totalQuantity) * unitPrice;
+    const clientId = user?.role === 'admin' ? selectedClientId : userProfile.client_id;
+    const quantityPerOrder = parseInt(totalQuantity);
+    const dailyQty = parseInt(dailyQuantity);
+    const paid = paidAmount ? parseFloat(paidAmount) : 0;
     
-    createOrderMutation.mutate({
-      client_id: userProfile.client_id,
-      product_id: selectedProduct,
-      category_id: selectedCategory || null,
-      lead_type: leadType,
-      state: state,
-      ddd: ddd || null,
-      total_quantity: parseInt(totalQuantity),
-      daily_quantity: parseInt(dailyQuantity),
-      delivered_quantity: 0,
-      unit_price: unitPrice,
-      total_amount: totalAmount,
-      paid_amount: 0,
-      status: 'pending_payment',
-      distribution_mode: distributionMode,
-      assigned_to: distributionMode !== 'manual' ? user.email : null,
-    });
+    // Determinar DDDs a usar
+    let dddsToUse = [null]; // null = todo o estado
+    if (dddMode === 'specific' && specificDdds) {
+      dddsToUse = specificDdds.split(',').map(d => d.trim()).filter(d => d);
+    } else if (dddMode === 'except' && excludedDdds) {
+      // Buscar todos os DDDs possíveis e excluir os listados
+      const allDdds = ['11','12','13','14','15','16','17','18','19','21','22','24','27','28',
+        '31','32','33','34','35','37','38','41','42','43','44','45','46','47','48','49',
+        '51','53','54','55','61','62','63','64','65','66','67','68','69','71','73','74',
+        '75','77','79','81','82','83','84','85','86','87','88','89','91','92','93','94',
+        '95','96','97','98','99'];
+      const excluded = excludedDdds.split(',').map(d => d.trim()).filter(d => d);
+      dddsToUse = allDdds.filter(d => !excluded.includes(d));
+    }
+    
+    // Criar pedidos para cada combinação de estado/DDD
+    const orders = [];
+    for (const state of selectedStates) {
+      for (const ddd of dddsToUse) {
+        const totalAmount = quantityPerOrder * unitPrice;
+        orders.push({
+          client_id: clientId,
+          product_id: selectedProduct,
+          category_id: selectedCategory || null,
+          lead_type: leadType,
+          state: state,
+          ddd: ddd,
+          total_quantity: quantityPerOrder,
+          daily_quantity: dailyQty,
+          delivered_quantity: 0,
+          unit_price: unitPrice,
+          total_amount: totalAmount,
+          paid_amount: paid,
+          status: paid >= totalAmount ? 'active' : 'pending_payment',
+          distribution_mode: distributionMode,
+          assigned_to: distributionMode !== 'manual' ? user.email : null,
+        });
+      }
+    }
+    
+    createOrderMutation.mutate(orders);
   };
 
-  const totalAmount = totalQuantity && unitPrice ? parseFloat(totalQuantity) * unitPrice : 0;
+  const toggleState = (state) => {
+    setSelectedStates(prev =>
+      prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]
+    );
+  };
+
+  const toggleAllStates = () => {
+    if (selectedStates.length === ESTADOS.length) {
+      setSelectedStates([]);
+    } else {
+      setSelectedStates([...ESTADOS]);
+    }
+  };
+
+  const totalOrders = selectedStates.length * (dddMode === 'specific' && specificDdds ? specificDdds.split(',').length : 
+                      dddMode === 'except' && excludedDdds ? (100 - excludedDdds.split(',').length) : 1);
+  const totalAmount = totalQuantity && unitPrice ? parseFloat(totalQuantity) * unitPrice * totalOrders : 0;
 
   return (
     <div className="space-y-6">
@@ -164,6 +223,24 @@ export default function OrderCreate() {
                 <CardTitle>Detalhes do Pedido</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {user?.role === 'admin' && (
+                  <div>
+                    <Label>Cliente *</Label>
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId} required>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((client) => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Produto *</Label>
@@ -199,52 +276,90 @@ export default function OrderCreate() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Tipo de Lead *</Label>
-                    <Select value={leadType} onValueChange={setLeadType} required>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="juridica">Jurídica (PJ)</SelectItem>
-                        <SelectItem value="fisica">Física (PF)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <Label>Tipo de Lead *</Label>
+                  <Select value={leadType} onValueChange={setLeadType} required>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="juridica">Jurídica (PJ)</SelectItem>
+                      <SelectItem value="fisica">Física (PF)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  <div>
-                    <Label>Estado *</Label>
-                    <Select value={state} onValueChange={setState} required>
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ESTADOS.map((uf) => (
-                          <SelectItem key={uf} value={uf}>
-                            {uf}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Estados *</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={toggleAllStates}>
+                      {selectedStates.length === ESTADOS.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                    </Button>
                   </div>
+                  <div className="border rounded-lg p-4 max-h-48 overflow-y-auto">
+                    <div className="grid grid-cols-4 gap-2">
+                      {ESTADOS.map((uf) => (
+                        <div key={uf} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selectedStates.includes(uf)}
+                            onCheckedChange={() => toggleState(uf)}
+                          />
+                          <Label className="cursor-pointer">{uf}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {selectedStates.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedStates.map((state) => (
+                        <Badge key={state} variant="secondary">
+                          {state}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                  <div>
-                    <Label>DDD</Label>
+                <div>
+                  <Label>DDDs</Label>
+                  <Select value={dddMode} onValueChange={setDddMode}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os DDDs</SelectItem>
+                      <SelectItem value="specific">DDDs Específicos</SelectItem>
+                      <SelectItem value="except">Todos Exceto</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {dddMode === 'specific' && (
                     <Input
                       type="text"
-                      value={ddd}
-                      onChange={(e) => setDdd(e.target.value)}
-                      placeholder="Opcional"
-                      maxLength={2}
-                      className="mt-1"
+                      value={specificDdds}
+                      onChange={(e) => setSpecificDdds(e.target.value)}
+                      placeholder="Ex: 11,21,31"
+                      className="mt-2"
                     />
-                  </div>
+                  )}
+
+                  {dddMode === 'except' && (
+                    <Input
+                      type="text"
+                      value={excludedDdds}
+                      onChange={(e) => setExcludedDdds(e.target.value)}
+                      placeholder="Ex: 13,21,22,24"
+                      className="mt-2"
+                    />
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Separe os DDDs por vírgula
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Quantidade Total *</Label>
+                    <Label>Quantidade por Pedido *</Label>
                     <Input
                       type="number"
                       value={totalQuantity}
@@ -254,6 +369,9 @@ export default function OrderCreate() {
                       min="1"
                       className="mt-1"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Quantidade para cada estado/DDD
+                    </p>
                   </div>
 
                   <div>
@@ -269,6 +387,23 @@ export default function OrderCreate() {
                     />
                   </div>
                 </div>
+
+                {user?.role === 'admin' && (
+                  <div>
+                    <Label>Valor Pago</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
+                      placeholder="Ex: 1000.00"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Deixe vazio para status "Pendente de Pagamento"
+                    </p>
+                  </div>
+                )}
 
                 <div>
                   <Label>Modo de Distribuição *</Label>
@@ -302,22 +437,30 @@ export default function OrderCreate() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Estados Selecionados:</span>
+                  <span className="font-medium">{selectedStates.length}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Total de Pedidos:</span>
+                  <span className="font-medium">{totalOrders}</span>
+                </div>
+                <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Preço Unitário:</span>
                   <span className="font-medium">R$ {unitPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Quantidade:</span>
+                  <span className="text-gray-600">Qtd por Pedido:</span>
                   <span className="font-medium">{totalQuantity || 0} leads</span>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
-                    <span className="font-semibold">Total:</span>
+                    <span className="font-semibold">Total Geral:</span>
                     <span className="text-2xl font-bold text-blue-600">
                       R$ {totalAmount.toFixed(2)}
                     </span>
                   </div>
                 </div>
-                
+
                 {unitPrice === 0 && selectedProduct && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                     <p className="text-sm text-yellow-800">
@@ -328,9 +471,14 @@ export default function OrderCreate() {
               </CardContent>
             </Card>
 
-            <Button type="submit" className="w-full" size="lg" disabled={!unitPrice || !totalQuantity}>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              size="lg" 
+              disabled={!unitPrice || !totalQuantity || selectedStates.length === 0 || (user?.role === 'admin' && !selectedClientId)}
+            >
               <Save className="w-5 h-5 mr-2" />
-              Criar Pedido
+              Criar {totalOrders} Pedido{totalOrders > 1 ? 's' : ''}
             </Button>
           </div>
         </div>
