@@ -141,9 +141,12 @@ export default function OrderCreate() {
       ddds: dddsString,
       total_quantity: quantity,
       daily_quantity: dailyQty,
+      delivered_quantity: 0,
       total_amount: amount,
+      consumed_amount: 0,
       status: amount > 0 ? 'active' : 'pending_payment',
       distribution_mode: distributionMode,
+      notification_90_sent: false,
     };
     
     if (selectedCategory) {
