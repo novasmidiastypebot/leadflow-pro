@@ -80,8 +80,10 @@ export default function Leads() {
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = 
+      lead.form_data?.Nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.form_data?.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.form_data?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.form_data?.['E-mail']?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.form_data?.email?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
@@ -163,12 +165,12 @@ export default function Leads() {
                 ) : filteredLeads.map((lead) => (
                   <TableRow key={lead.id}>
                     <TableCell className="font-medium">
-                      {lead.form_data?.nome || lead.form_data?.name || 'Sem nome'}
+                      {lead.form_data?.Nome || lead.form_data?.nome || lead.form_data?.name || 'Sem nome'}
                     </TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{lead.form_data?.email || '-'}</div>
-                        <div className="text-gray-500">{lead.form_data?.telefone || lead.form_data?.phone || '-'}</div>
+                        <div>{lead.form_data?.['E-mail'] || lead.form_data?.email || '-'}</div>
+                        <div className="text-gray-500">{lead.form_data?.Telefone || lead.form_data?.telefone || lead.form_data?.phone || '-'}</div>
                       </div>
                     </TableCell>
                     <TableCell>
