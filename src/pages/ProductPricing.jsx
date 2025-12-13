@@ -26,8 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Pencil, DollarSign } from 'lucide-react';
+import { Plus, Pencil, DollarSign, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const ESTADOS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 
@@ -40,6 +41,9 @@ export default function ProductPricing() {
   const [userProfile, setUserProfile] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [editingPricing, setEditingPricing] = useState(null);
+  const [selectedStates, setSelectedStates] = useState([]);
+  const [dddList, setDddList] = useState([]);
+  const [currentDdd, setCurrentDdd] = useState('');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -104,23 +108,78 @@ export default function ProductPricing() {
     },
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const data = {
-      product_id: formData.get('product_id'),
-      lead_type: formData.get('lead_type'),
-      state: formData.get('state'),
-      ddd: formData.get('ddd') || null,
-      price: parseFloat(formData.get('price')),
-      is_active: true,
-    };
+    const product_id = formData.get('product_id');
+    const lead_type = formData.get('lead_type');
+    const price = parseFloat(formData.get('price'));
 
     if (editingPricing) {
+      // Edição individual
+      const data = {
+        product_id,
+        lead_type,
+        state: formData.get('state'),
+        ddd: formData.get('ddd') || null,
+        price,
+        is_active: true,
+      };
       updatePricingMutation.mutate({ id: editingPricing.id, data });
     } else {
-      createPricingMutation.mutate(data);
+      // Criação em lote
+      const states = selectedStates.length > 0 ? selectedStates : [formData.get('state')];
+      const ddds = dddList.length > 0 ? dddList : [null];
+
+      // Criar precificação para cada combinação de estado e DDD
+      for (const state of states) {
+        for (const ddd of ddds) {
+          await base44.entities.ProductPricing.create({
+            product_id,
+            lead_type,
+            state,
+            ddd,
+            price,
+            is_active: true,
+          });
+        }
+      }
+      
+      queryClient.invalidateQueries(['pricings']);
+      setShowDialog(false);
+      setEditingPricing(null);
+      setSelectedStates([]);
+      setDddList([]);
     }
+  };
+
+  const toggleState = (state) => {
+    setSelectedStates(prev => 
+      prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]
+    );
+  };
+
+  const addDdd = () => {
+    if (currentDdd && currentDdd.length === 2 && !dddList.includes(currentDdd)) {
+      setDddList([...dddList, currentDdd]);
+      setCurrentDdd('');
+    }
+  };
+
+  const removeDdd = (ddd) => {
+    setDddList(dddList.filter(d => d !== ddd));
+  };
+
+  const openDialog = (pricing = null) => {
+    setEditingPricing(pricing);
+    if (pricing) {
+      setSelectedStates([]);
+      setDddList([]);
+    } else {
+      setSelectedStates([]);
+      setDddList([]);
+    }
+    setShowDialog(true);
   };
 
   return (
@@ -130,7 +189,7 @@ export default function ProductPricing() {
           <h1 className="text-3xl font-bold text-gray-900">Precificação de Produtos</h1>
           <p className="text-gray-600 mt-1">Configure os preços por estado/DDD/tipo</p>
         </div>
-        <Button onClick={() => { setEditingPricing(null); setShowDialog(true); }}>
+        <Button onClick={() => openDialog()}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Precificação
         </Button>
@@ -179,7 +238,7 @@ export default function ProductPricing() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => { setEditingPricing(pricing); setShowDialog(true); }}
+                        onClick={() => openDialog(pricing)}
                       >
                         <Pencil className="w-4 h-4" />
                       </Button>
@@ -223,64 +282,125 @@ export default function ProductPricing() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="lead_type">Tipo de Lead *</Label>
-                <Select name="lead_type" defaultValue={editingPricing?.lead_type || 'juridica'} required>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="juridica">Jurídica (PJ)</SelectItem>
-                    <SelectItem value="fisica">Física (PF)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="state">Estado *</Label>
-                <Select name="state" defaultValue={editingPricing?.state} required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="UF" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ESTADOS.map((uf) => (
-                      <SelectItem key={uf} value={uf}>
-                        {uf}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="lead_type">Tipo de Lead *</Label>
+              <Select name="lead_type" defaultValue={editingPricing?.lead_type || 'juridica'} required>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="juridica">Jurídica (PJ)</SelectItem>
+                  <SelectItem value="fisica">Física (PF)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="ddd">DDD (opcional)</Label>
-                <Input
-                  id="ddd"
-                  name="ddd"
-                  defaultValue={editingPricing?.ddd}
-                  placeholder="Ex: 11"
-                  maxLength={2}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Deixe vazio para aplicar a todo o estado
-                </p>
-              </div>
+            {editingPricing ? (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="state">Estado *</Label>
+                  <Select name="state" defaultValue={editingPricing?.state} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="UF" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS.map((uf) => (
+                        <SelectItem key={uf} value={uf}>
+                          {uf}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div>
-                <Label htmlFor="price">Preço *</Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  defaultValue={editingPricing?.price}
-                  placeholder="Ex: 40.00"
-                  required
-                />
+                <div>
+                  <Label htmlFor="ddd">DDD (opcional)</Label>
+                  <Input
+                    id="ddd"
+                    name="ddd"
+                    defaultValue={editingPricing?.ddd}
+                    placeholder="Ex: 11"
+                    maxLength={2}
+                  />
+                </div>
               </div>
+            ) : (
+              <>
+                <div>
+                  <Label>Estado(s) *</Label>
+                  <div className="border rounded-lg p-4 max-h-48 overflow-y-auto space-y-2">
+                    {ESTADOS.map((uf) => (
+                      <div key={uf} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={selectedStates.includes(uf)}
+                          onCheckedChange={() => toggleState(uf)}
+                        />
+                        <Label className="cursor-pointer">{uf}</Label>
+                      </div>
+                    ))}
+                  </div>
+                  {selectedStates.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedStates.map((state) => (
+                        <Badge key={state} variant="secondary">
+                          {state}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="ddd_input">DDD(s) (opcional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="ddd_input"
+                      value={currentDdd}
+                      onChange={(e) => setCurrentDdd(e.target.value)}
+                      placeholder="Ex: 11"
+                      maxLength={2}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addDdd();
+                        }
+                      }}
+                    />
+                    <Button type="button" onClick={addDdd} variant="outline">
+                      Adicionar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Deixe vazio para aplicar a todo o estado
+                  </p>
+                  {dddList.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {dddList.map((ddd) => (
+                        <Badge key={ddd} variant="secondary" className="flex items-center gap-1">
+                          {ddd}
+                          <X
+                            className="w-3 h-3 cursor-pointer"
+                            onClick={() => removeDdd(ddd)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div>
+              <Label htmlFor="price">Preço *</Label>
+              <Input
+                id="price"
+                name="price"
+                type="number"
+                step="0.01"
+                defaultValue={editingPricing?.price}
+                placeholder="Ex: 40.00"
+                required
+              />
             </div>
 
             <div className="flex justify-end gap-2">
