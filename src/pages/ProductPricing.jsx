@@ -87,7 +87,9 @@ export default function ProductPricing() {
   const { data: pricings = [] } = useQuery({
     queryKey: ['pricings'],
     queryFn: async () => {
-      return await base44.entities.ProductPricing.list();
+      const result = await base44.entities.ProductPricing.list();
+      console.log('Pricings loaded:', result);
+      return result;
     },
   });
 
@@ -227,6 +229,7 @@ export default function ProductPricing() {
   };
 
   const handleDeleteSingle = (id) => {
+    console.log('Deleting pricing with ID:', id);
     if (confirm('Tem certeza que deseja deletar esta precificação?')) {
       deletePricingMutation.mutate(id);
     }
