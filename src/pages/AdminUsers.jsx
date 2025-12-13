@@ -58,22 +58,41 @@ export default function AdminUsers() {
 
   const createProfileMutation = useMutation({
     mutationFn: async (data) => {
-      // First check if user exists
-      const existingUsers = await base44.entities.User.filter({ email: data.user_email });
+      const { user_email, full_name, ...profileData } = data;
       
+      // Check if user exists
+      const existingUsers = await base44.entities.User.filter({ email: user_email });
+      
+      // If user doesn't exist, send invitation email
       if (existingUsers.length === 0) {
-        throw new Error('Usuário não encontrado. O usuário precisa ser convidado primeiro através do sistema de convites.');
+        const client = clients.find(c => c.id === data.client_id);
+        const inviteLink = `${window.location.origin}`;
+        
+        await base44.integrations.Core.SendEmail({
+          to: user_email,
+          subject: 'Convite para acessar o LeadManager',
+          body: `
+            <h2>Bem-vindo ao LeadManager!</h2>
+            <p>Olá${full_name ? ' ' + full_name : ''},</p>
+            <p>Você foi convidado para fazer parte da equipe ${client?.name || 'da empresa'}.</p>
+            <p>Acesse o sistema através do link: <a href="${inviteLink}">${inviteLink}</a></p>
+            <p>Use este e-mail (${user_email}) para fazer login.</p>
+          `
+        });
       }
       
-      // Create profile with the user's email as created_by
-      const { user_email, ...profileData } = data;
-      return base44.entities.UserProfile.create(profileData);
+      // Create profile (will be associated when user logs in)
+      return base44.entities.UserProfile.create({
+        ...profileData,
+        full_name: full_name || null,
+        created_by: user_email
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
       setShowDialog(false);
       setEditingProfile(null);
-      toast.success('Perfil criado com sucesso!');
+      toast.success('Perfil criado e convite enviado por e-mail!');
     },
     onError: (error) => {
       toast.error(error.message || 'Erro ao criar perfil');
@@ -81,19 +100,9 @@ export default function AdminUsers() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async ({ id, data, oldEmail, newEmail }) => {
-      // Se o e-mail mudou, atualizar o usuário
-      if (oldEmail !== newEmail) {
-        const existingUsers = await base44.entities.User.filter({ email: oldEmail });
-        if (existingUsers[0]) {
-          await base44.entities.User.update(existingUsers[0].id, { email: newEmail });
-        }
-      }
-      return base44.entities.UserProfile.update(id, data);
-    },
+    mutationFn: ({ id, data }) => base44.entities.UserProfile.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
-      queryClient.invalidateQueries(['all-users']);
       setShowDialog(false);
       setEditingProfile(null);
       toast.success('Perfil atualizado com sucesso!');
@@ -114,14 +123,9 @@ export default function AdminUsers() {
     };
 
     if (editingProfile) {
-      updateProfileMutation.mutate({ 
-        id: editingProfile.id, 
-        data,
-        oldEmail: editingProfile.created_by,
-        newEmail: userEmail
-      });
+      updateProfileMutation.mutate({ id: editingProfile.id, data });
     } else {
-      createProfileMutation.mutate({ ...data, user_email: userEmail });
+      createProfileMutation.mutate({ ...data, user_email: userEmail, full_name: data.full_name });
     }
   };
 
@@ -218,8 +222,12 @@ export default function AdminUsers() {
                 type="email"
                 placeholder="usuario@exemplo.com"
                 defaultValue={editingProfile?.created_by || ''}
+                disabled={!!editingProfile}
                 required
               />
+              {editingProfile && (
+                <p className="text-xs text-gray-500 mt-1">O e-mail não pode ser alterado após o cadastro</p>
+              )}
             </div>
             <div>
               <Label htmlFor="full_name">Nome Completo</Label>
