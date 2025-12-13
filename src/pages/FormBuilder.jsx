@@ -27,6 +27,7 @@ import {
 import { Plus, Trash2, GripVertical, Save, Eye, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function FormBuilder() {
   const [user, setUser] = useState(null);
@@ -261,6 +262,16 @@ export default function FormBuilder() {
     deleteFormMutation.mutate();
   };
 
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+
+    const items = Array.from(fields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setFields(items);
+  };
+
   const fieldTypes = [
     { value: 'text', label: 'Texto' },
     { value: 'email', label: 'Email' },
@@ -355,89 +366,114 @@ export default function FormBuilder() {
               </Button>
             </CardHeader>
             <CardContent className="space-y-4">
-              {fields.map((field, index) => (
-                <div key={index} className="border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <GripVertical className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium text-sm">
-                        Campo {index + 1}
-                        {field.is_default && <span className="text-blue-600 ml-2 text-xs">(Obrigatório)</span>}
-                      </span>
-                    </div>
-                    {field.label !== 'Nome' && field.label !== 'E-mail' && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeField(index)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
-                    )}
-                  </div>
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="fields">
+                  {(provided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="space-y-4"
+                    >
+                      {fields.map((field, index) => (
+                        <Draggable key={index} draggableId={`field-${index}`} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className={`border rounded-lg p-4 space-y-3 ${
+                                snapshot.isDragging ? 'shadow-lg bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div {...provided.dragHandleProps}>
+                                    <GripVertical className="w-4 h-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+                                  </div>
+                                  <span className="font-medium text-sm">
+                                    Campo {index + 1}
+                                    {field.is_default && <span className="text-blue-600 ml-2 text-xs">(Obrigatório)</span>}
+                                  </span>
+                                </div>
+                                {field.label !== 'Nome' && field.label !== 'E-mail' && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => removeField(index)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </Button>
+                                )}
+                              </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label className="text-xs">Tipo</Label>
-                      <Select
-                        value={field.field_type}
-                        onValueChange={(value) => updateField(index, 'field_type', value)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {fieldTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label className="text-xs">Label</Label>
-                      <Input
-                        className="h-9"
-                        value={field.label}
-                        onChange={(e) => updateField(index, 'label', e.target.value)}
-                        placeholder="Nome do campo"
-                      />
-                    </div>
-                  </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs">Tipo</Label>
+                                  <Select
+                                    value={field.field_type}
+                                    onValueChange={(value) => updateField(index, 'field_type', value)}
+                                  >
+                                    <SelectTrigger className="h-9">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {fieldTypes.map((type) => (
+                                        <SelectItem key={type.value} value={type.value}>
+                                          {type.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Label</Label>
+                                  <Input
+                                    className="h-9"
+                                    value={field.label}
+                                    onChange={(e) => updateField(index, 'label', e.target.value)}
+                                    placeholder="Nome do campo"
+                                  />
+                                </div>
+                              </div>
 
-                  <div>
-                    <Label className="text-xs">Placeholder</Label>
-                    <Input
-                      className="h-9"
-                      value={field.placeholder}
-                      onChange={(e) => updateField(index, 'placeholder', e.target.value)}
-                      placeholder="Texto de exemplo"
-                    />
-                  </div>
+                              <div>
+                                <Label className="text-xs">Placeholder</Label>
+                                <Input
+                                  className="h-9"
+                                  value={field.placeholder}
+                                  onChange={(e) => updateField(index, 'placeholder', e.target.value)}
+                                  placeholder="Texto de exemplo"
+                                />
+                              </div>
 
-                  {field.field_type === 'select' && (
-                    <div>
-                      <Label className="text-xs">Opções (separadas por vírgula)</Label>
-                      <Input
-                        className="h-9"
-                        value={field.options}
-                        onChange={(e) => updateField(index, 'options', e.target.value)}
-                        placeholder="Opção 1, Opção 2, Opção 3"
-                      />
+                              {field.field_type === 'select' && (
+                                <div>
+                                  <Label className="text-xs">Opções (separadas por vírgula)</Label>
+                                  <Input
+                                    className="h-9"
+                                    value={field.options}
+                                    onChange={(e) => updateField(index, 'options', e.target.value)}
+                                    placeholder="Opção 1, Opção 2, Opção 3"
+                                  />
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2">
+                                <Checkbox
+                                  checked={field.is_required}
+                                  onCheckedChange={(checked) => updateField(index, 'is_required', checked)}
+                                  disabled={field.label === 'Nome' || field.label === 'E-mail'}
+                                />
+                                <Label className="text-sm">Campo obrigatório</Label>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                     </div>
                   )}
-
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      checked={field.is_required}
-                      onCheckedChange={(checked) => updateField(index, 'is_required', checked)}
-                      disabled={field.label === 'Nome' || field.label === 'E-mail'}
-                    />
-                    <Label className="text-sm">Campo obrigatório</Label>
-                  </div>
-                </div>
-              ))}
+                </Droppable>
+              </DragDropContext>
 
               {fields.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
