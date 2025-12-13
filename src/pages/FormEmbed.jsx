@@ -89,21 +89,27 @@ export default function FormEmbed() {
     );
   }
 
+  const style = formTemplate.style_config || {};
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <Card>
+        <Card style={{ backgroundColor: style.form_bg_color || '#ffffff' }}>
           <CardHeader>
-            <CardTitle>{formTemplate.name}</CardTitle>
+            <CardTitle style={{ color: style.title_color || '#111827' }}>
+              {formTemplate.name}
+            </CardTitle>
             {formTemplate.description && (
-              <p className="text-sm text-gray-600 mt-2">{formTemplate.description}</p>
+              <p className="text-sm mt-2" style={{ color: style.field_text_color || '#374151' }}>
+                {formTemplate.description}
+              </p>
             )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {fields.map((field) => (
                 <div key={field.id}>
-                  <Label>
+                  <Label style={{ color: style.field_text_color || '#374151' }}>
                     {field.label}
                     {field.is_required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
@@ -114,13 +120,25 @@ export default function FormEmbed() {
                       required={field.is_required}
                       onChange={(e) => handleFieldChange(field.label, e.target.value)}
                       className="mt-1"
+                      style={{
+                        borderColor: style.field_border_color || '#d1d5db',
+                        color: style.field_text_color || '#374151',
+                        fontFamily: style.field_font_family || 'inherit',
+                      }}
                     />
                   ) : field.field_type === 'select' ? (
                     <Select
                       required={field.is_required}
                       onValueChange={(value) => handleFieldChange(field.label, value)}
                     >
-                      <SelectTrigger className="mt-1">
+                      <SelectTrigger 
+                        className="mt-1"
+                        style={{
+                          borderColor: style.field_border_color || '#d1d5db',
+                          color: style.field_text_color || '#374151',
+                          fontFamily: style.field_font_family || 'inherit',
+                        }}
+                      >
                         <SelectValue placeholder={field.placeholder || 'Selecione'} />
                       </SelectTrigger>
                       <SelectContent>
@@ -137,7 +155,9 @@ export default function FormEmbed() {
                         required={field.is_required}
                         onCheckedChange={(checked) => handleFieldChange(field.label, checked)}
                       />
-                      <Label>{field.placeholder}</Label>
+                      <Label style={{ color: style.field_text_color || '#374151' }}>
+                        {field.placeholder}
+                      </Label>
                     </div>
                   ) : (
                     <Input
@@ -152,13 +172,26 @@ export default function FormEmbed() {
                       required={field.is_required}
                       onChange={(e) => handleFieldChange(field.label, e.target.value)}
                       className="mt-1"
+                      style={{
+                        borderColor: style.field_border_color || '#d1d5db',
+                        color: style.field_text_color || '#374151',
+                        fontFamily: style.field_font_family || 'inherit',
+                      }}
                     />
                   )}
                 </div>
               ))}
 
-              <Button type="submit" className="w-full" disabled={createLeadMutation.isPending}>
-                {createLeadMutation.isPending ? 'Enviando...' : 'Enviar'}
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={createLeadMutation.isPending}
+                style={{
+                  backgroundColor: style.button_bg_color || '#2563eb',
+                  color: style.button_text_color || '#ffffff',
+                }}
+              >
+                {createLeadMutation.isPending ? 'Enviando...' : (style.button_text || 'Enviar')}
               </Button>
             </form>
           </CardContent>

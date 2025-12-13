@@ -39,6 +39,16 @@ export default function FormBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasLeads, setHasLeads] = useState(false);
+  const [styleConfig, setStyleConfig] = useState({
+    title_color: '#111827',
+    field_text_color: '#374151',
+    field_border_color: '#d1d5db',
+    field_font_family: 'inherit',
+    form_bg_color: '#ffffff',
+    button_bg_color: '#2563eb',
+    button_text_color: '#ffffff',
+    button_text: 'Enviar',
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -100,6 +110,16 @@ export default function FormBuilder() {
       setFormName(form.name);
       setFormDescription(form.description || '');
       setProductId(form.product_id || '');
+      setStyleConfig(form.style_config || {
+        title_color: '#111827',
+        field_text_color: '#374151',
+        field_border_color: '#d1d5db',
+        field_font_family: 'inherit',
+        form_bg_color: '#ffffff',
+        button_bg_color: '#2563eb',
+        button_text_color: '#ffffff',
+        button_text: 'Enviar',
+      });
       
       const formFields = await base44.entities.FormField.filter({ form_template_id: formId }, 'order');
       
@@ -241,6 +261,7 @@ export default function FormBuilder() {
       description: formDescription,
       product_id: productId || null,
       status: 'active',
+      style_config: styleConfig,
     };
 
     if (formId) {
@@ -351,6 +372,98 @@ export default function FormBuilder() {
                         {product.name}
                       </SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Personalização</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="title_color">Cor do Título</Label>
+                  <Input
+                    id="title_color"
+                    type="color"
+                    value={styleConfig.title_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, title_color: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="field_text_color">Cor do Texto dos Campos</Label>
+                  <Input
+                    id="field_text_color"
+                    type="color"
+                    value={styleConfig.field_text_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, field_text_color: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="field_border_color">Cor da Borda dos Campos</Label>
+                  <Input
+                    id="field_border_color"
+                    type="color"
+                    value={styleConfig.field_border_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, field_border_color: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="form_bg_color">Cor de Fundo</Label>
+                  <Input
+                    id="form_bg_color"
+                    type="color"
+                    value={styleConfig.form_bg_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, form_bg_color: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="button_bg_color">Cor de Fundo do Botão</Label>
+                  <Input
+                    id="button_bg_color"
+                    type="color"
+                    value={styleConfig.button_bg_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, button_bg_color: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="button_text_color">Cor do Texto do Botão</Label>
+                  <Input
+                    id="button_text_color"
+                    type="color"
+                    value={styleConfig.button_text_color}
+                    onChange={(e) => setStyleConfig({...styleConfig, button_text_color: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="button_text">Texto do Botão</Label>
+                <Input
+                  id="button_text"
+                  value={styleConfig.button_text}
+                  onChange={(e) => setStyleConfig({...styleConfig, button_text: e.target.value})}
+                  placeholder="Enviar"
+                />
+              </div>
+              <div>
+                <Label htmlFor="field_font_family">Fonte dos Campos</Label>
+                <Select
+                  value={styleConfig.field_font_family}
+                  onValueChange={(value) => setStyleConfig({...styleConfig, field_font_family: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="inherit">Padrão</SelectItem>
+                    <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                    <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                    <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                    <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                    <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -487,7 +600,7 @@ export default function FormBuilder() {
         {/* Preview */}
         {showPreview && (
           <div className="lg:sticky lg:top-6 lg:h-fit">
-            <Card>
+            <Card style={{ backgroundColor: styleConfig.form_bg_color }}>
               <CardHeader>
                 <CardTitle>Preview</CardTitle>
               </CardHeader>
@@ -495,24 +608,46 @@ export default function FormBuilder() {
                 <div className="space-y-4">
                   {formName && (
                     <div>
-                      <h3 className="text-xl font-bold">{formName}</h3>
+                      <h3 
+                        className="text-xl font-bold" 
+                        style={{ color: styleConfig.title_color }}
+                      >
+                        {formName}
+                      </h3>
                       {formDescription && (
-                        <p className="text-sm text-gray-600 mt-1">{formDescription}</p>
+                        <p className="text-sm mt-1" style={{ color: styleConfig.field_text_color }}>
+                          {formDescription}
+                        </p>
                       )}
                     </div>
                   )}
 
                   {fields.map((field, index) => (
                     <div key={index}>
-                      <Label>
+                      <Label style={{ color: styleConfig.field_text_color }}>
                         {field.label || `Campo ${index + 1}`}
                         {field.is_required && <span className="text-red-500 ml-1">*</span>}
                       </Label>
                       {field.field_type === 'textarea' ? (
-                        <Textarea placeholder={field.placeholder} className="mt-1" />
+                        <Textarea 
+                          placeholder={field.placeholder} 
+                          className="mt-1"
+                          style={{
+                            borderColor: styleConfig.field_border_color,
+                            color: styleConfig.field_text_color,
+                            fontFamily: styleConfig.field_font_family,
+                          }}
+                        />
                       ) : field.field_type === 'select' ? (
                         <Select>
-                          <SelectTrigger className="mt-1">
+                          <SelectTrigger 
+                            className="mt-1"
+                            style={{
+                              borderColor: styleConfig.field_border_color,
+                              color: styleConfig.field_text_color,
+                              fontFamily: styleConfig.field_font_family,
+                            }}
+                          >
                             <SelectValue placeholder={field.placeholder || 'Selecione'} />
                           </SelectTrigger>
                           <SelectContent>
@@ -526,19 +661,34 @@ export default function FormBuilder() {
                       ) : field.field_type === 'checkbox' ? (
                         <div className="flex items-center gap-2 mt-1">
                           <Checkbox />
-                          <Label>{field.placeholder}</Label>
+                          <Label style={{ color: styleConfig.field_text_color }}>
+                            {field.placeholder}
+                          </Label>
                         </div>
                       ) : (
                         <Input
                           type={field.field_type === 'email' ? 'email' : field.field_type === 'number' ? 'number' : 'text'}
                           placeholder={field.placeholder}
                           className="mt-1"
+                          style={{
+                            borderColor: styleConfig.field_border_color,
+                            color: styleConfig.field_text_color,
+                            fontFamily: styleConfig.field_font_family,
+                          }}
                         />
                       )}
                     </div>
                   ))}
 
-                  <Button className="w-full">Enviar</Button>
+                  <Button 
+                    className="w-full" 
+                    style={{
+                      backgroundColor: styleConfig.button_bg_color,
+                      color: styleConfig.button_text_color,
+                    }}
+                  >
+                    {styleConfig.button_text}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
