@@ -278,6 +278,7 @@ export default function ProductPricing() {
             </TableHeader>
             <TableBody>
               {pricings.map((pricing) => {
+                console.log('Rendering pricing:', pricing);
                 const product = products.find(p => p.id === pricing.product_id);
                 return (
                   <TableRow key={pricing.id}>
