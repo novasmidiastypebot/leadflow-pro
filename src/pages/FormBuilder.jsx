@@ -88,6 +88,22 @@ export default function FormBuilder() {
       setProductId(form.product_id || '');
       
       const formFields = await base44.entities.FormField.filter({ form_template_id: formId }, 'order');
+      
+      // Verificar se campo "Possui CNPJ" já existe
+      const hasPossuiCNPJ = formFields.some(f => f.label === 'Possui CNPJ');
+      
+      // Se não existir, adicionar
+      if (!hasPossuiCNPJ) {
+        formFields.push({
+          field_type: 'select',
+          label: 'Possui CNPJ',
+          placeholder: 'Selecione',
+          is_required: false,
+          options: 'Sim,Não',
+          is_default: true,
+        });
+      }
+      
       setFields(formFields);
     }
   };
