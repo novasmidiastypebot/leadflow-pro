@@ -125,7 +125,6 @@ export default function OrderCreate() {
     const order = {
       client_id: clientId,
       product_id: selectedProduct,
-      category_id: selectedCategory || null,
       lead_types: leadType,
       states: selectedStates.join(','),
       ddds: dddsString,
@@ -139,6 +138,10 @@ export default function OrderCreate() {
       assigned_to: distributionMode !== 'manual' ? user.email : null,
       notification_90_sent: false,
     };
+    
+    if (selectedCategory) {
+      order.category_id = selectedCategory;
+    }
     
     createOrderMutation.mutate(order);
   };
