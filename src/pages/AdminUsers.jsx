@@ -60,28 +60,7 @@ export default function AdminUsers() {
     mutationFn: async (data) => {
       const { user_email, full_name, ...profileData } = data;
       
-      // Check if user exists
-      const existingUsers = await base44.entities.User.filter({ email: user_email });
-      
-      // If user doesn't exist, send invitation email
-      if (existingUsers.length === 0) {
-        const client = clients.find(c => c.id === data.client_id);
-        const inviteLink = `${window.location.origin}`;
-        
-        await base44.integrations.Core.SendEmail({
-          to: user_email,
-          subject: 'Convite para acessar o LeadManager',
-          body: `
-            <h2>Bem-vindo ao LeadManager!</h2>
-            <p>Olá${full_name ? ' ' + full_name : ''},</p>
-            <p>Você foi convidado para fazer parte da equipe ${client?.name || 'da empresa'}.</p>
-            <p>Acesse o sistema através do link: <a href="${inviteLink}">${inviteLink}</a></p>
-            <p>Use este e-mail (${user_email}) para fazer login.</p>
-          `
-        });
-      }
-      
-      // Create profile (will be associated when user logs in)
+      // Create profile (user will be associated when they log in)
       return base44.entities.UserProfile.create({
         ...profileData,
         full_name: full_name || null,
@@ -92,10 +71,10 @@ export default function AdminUsers() {
       queryClient.invalidateQueries(['all-profiles']);
       setShowDialog(false);
       setEditingProfile(null);
-      toast.success('Perfil criado e convite enviado por e-mail!');
+      toast.success('Usuário cadastrado com sucesso!');
     },
     onError: (error) => {
-      toast.error(error.message || 'Erro ao criar perfil');
+      toast.error(error.message || 'Erro ao cadastrar usuário');
     },
   });
 
