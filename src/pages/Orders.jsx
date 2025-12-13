@@ -29,6 +29,12 @@ export default function Orders() {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
     
+    // Se é admin, não precisa de userProfile para buscar pedidos
+    if (currentUser.role === 'admin') {
+      console.log('Usuário é admin - não precisa de userProfile');
+      return;
+    }
+    
     const teamMembers = await base44.entities.TeamMember.filter({ email: currentUser.email });
     if (teamMembers.length > 0) {
       const member = teamMembers[0];
