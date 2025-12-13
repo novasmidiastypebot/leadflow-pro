@@ -37,8 +37,11 @@ export default function FormTemplates() {
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
+    console.log('Current user:', currentUser);
     
     const teamMembers = await base44.entities.TeamMember.filter({ email: currentUser.email });
+    console.log('TeamMembers found:', teamMembers);
+    
     if (teamMembers.length > 0) {
       const member = teamMembers[0];
       const profile = {
@@ -49,20 +52,25 @@ export default function FormTemplates() {
         status: member.status,
         created_by: member.email,
       };
+      console.log('Using TeamMember profile:', profile);
       setUserProfile(profile);
     } else {
       const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      console.log('UserProfiles found:', profiles);
       if (profiles.length > 0) {
+        console.log('Using UserProfile:', profiles[0]);
         setUserProfile(profiles[0]);
       }
     }
   };
 
-  const { data: forms = [] } = useQuery({
+  const { data: forms = [], isLoading: formsLoading } = useQuery({
     queryKey: ['forms', userProfile?.client_id],
     queryFn: async () => {
       if (!userProfile) return [];
-      return await base44.entities.FormTemplate.filter({ client_id: userProfile.client_id }, '-created_date');
+      const result = await base44.entities.FormTemplate.filter({ client_id: userProfile.client_id }, '-created_date');
+      console.log('FormTemplates loaded:', result);
+      return result;
     },
     enabled: !!userProfile,
   });
