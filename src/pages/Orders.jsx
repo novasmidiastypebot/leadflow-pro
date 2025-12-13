@@ -84,12 +84,17 @@ export default function Orders() {
   }, [userProfile, refetch]);
 
   const { data: products = [] } = useQuery({
-    queryKey: ['products', userProfile?.client_id],
+    queryKey: ['products'],
     queryFn: async () => {
-      if (!userProfile) return [];
-      return await base44.entities.Product.filter({ client_id: userProfile.client_id });
+      return await base44.entities.Product.list();
     },
-    enabled: !!userProfile,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      return await base44.entities.Client.list();
+    },
   });
 
   const statusColors = {
@@ -188,13 +193,15 @@ export default function Orders() {
             <TableBody>
               {orders.map((order) => {
                 const product = products.find(p => p.id === order.product_id);
+                const client = clients.find(c => c.id === order.client_id);
                 const progress = (order.delivered_quantity / order.total_quantity) * 100;
                 const creditProgress = order.total_amount > 0 ? (order.consumed_amount / order.total_amount) * 100 : 0;
 
                 return (
                   <TableRow key={order.id}>
-                    <TableCell className="font-medium">
-                      {product?.name || 'Produto não encontrado'}
+                    <TableCell>
+                      <div className="font-medium">{product?.name || 'Produto não encontrado'}</div>
+                      {client && <div className="text-xs text-gray-500">{client.name}</div>}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
