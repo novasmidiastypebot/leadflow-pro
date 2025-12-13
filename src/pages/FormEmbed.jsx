@@ -69,7 +69,7 @@ export default function FormEmbed() {
 
   if (!formTemplate) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex items-center justify-center p-8">
         <p className="text-gray-600">Carregando formulário...</p>
       </div>
     );
@@ -77,7 +77,7 @@ export default function FormEmbed() {
 
   if (submitted) {
     return (
-      <div className="flex items-center justify-center p-8 text-center" style={{ backgroundColor: formTemplate.style_config?.form_bg_color || '#ffffff' }}>
+      <div className="flex items-center justify-center p-8 text-center min-h-screen" style={{ backgroundColor: formTemplate.style_config?.form_bg_color || '#ffffff' }}>
         <div>
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2" style={{ color: formTemplate.style_config?.title_color || '#111827' }}>
@@ -94,8 +94,8 @@ export default function FormEmbed() {
   const style = formTemplate.style_config || {};
 
   return (
-    <div className="p-6" style={{ backgroundColor: style.form_bg_color || '#ffffff' }}>
-      <div className="space-y-4">
+    <div className="p-6 min-h-screen" style={{ backgroundColor: style.form_bg_color || '#ffffff' }}>
+      <div className="max-w-2xl mx-auto space-y-4">
         <div>
           <h3 className="text-xl font-bold" style={{ color: style.title_color || '#111827' }}>
             {formTemplate.name}
