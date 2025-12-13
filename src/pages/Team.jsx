@@ -16,16 +16,34 @@ export default function Team() {
   const loadUser = async () => {
     const currentUser = await base44.auth.me();
     setUser(currentUser);
-    const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
-    if (profiles.length > 0) {
-      setUserProfile(profiles[0]);
+    
+    // Primeiro tenta buscar na tabela TeamMember
+    const teamMembers = await base44.entities.TeamMember.filter({ email: currentUser.email });
+    if (teamMembers.length > 0) {
+      const member = teamMembers[0];
+      // Converte TeamMember para formato UserProfile para compatibilidade
+      const profile = {
+        client_id: member.client_id,
+        role: member.role,
+        full_name: member.name,
+        phone: member.phone,
+        status: member.status,
+        created_by: member.email,
+      };
+      setUserProfile(profile);
+    } else {
+      // Se não encontrar, tenta na UserProfile (legado)
+      const profiles = await base44.entities.UserProfile.filter({ created_by: currentUser.email });
+      if (profiles.length > 0) {
+        setUserProfile(profiles[0]);
+      }
     }
   };
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users'],
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ['all-members'],
     queryFn: async () => {
-      return await base44.entities.User.list();
+      return await base44.entities.TeamMember.list();
     },
   });
 
@@ -33,7 +51,17 @@ export default function Team() {
     queryKey: ['team', userProfile?.client_id],
     queryFn: async () => {
       if (!userProfile) return [];
-      return await base44.entities.UserProfile.filter({ client_id: userProfile.client_id });
+      const members = await base44.entities.TeamMember.filter({ client_id: userProfile.client_id });
+      // Converte para formato UserProfile para compatibilidade
+      return members.map(member => ({
+        id: member.id,
+        client_id: member.client_id,
+        role: member.role,
+        full_name: member.name,
+        phone: member.phone,
+        status: member.status,
+        created_by: member.email,
+      }));
     },
     enabled: !!userProfile,
   });
@@ -68,7 +96,6 @@ export default function Team() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {teamProfiles.map((profile) => {
-          const userInfo = allUsers.find(u => u.email === profile.created_by);
           const RoleIcon = roleIcons[profile.role] || Users;
           
           return (
@@ -80,7 +107,7 @@ export default function Team() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg text-gray-900">
-                      {profile.full_name || userInfo?.full_name || 'Usuário'}
+                      {profile.full_name || 'Usuário'}
                     </h3>
                     <p className="text-sm text-gray-600 mb-2">{profile.created_by}</p>
                     <div className="flex items-center gap-2 mb-2">
