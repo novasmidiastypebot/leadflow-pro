@@ -65,12 +65,18 @@ export default function AdminUsers() {
         throw new Error('Usuário não encontrado. O usuário precisa ser convidado primeiro através do sistema de convites.');
       }
       
+      // Update user name if provided
+      if (data.user_name && existingUsers[0]) {
+        await base44.entities.User.update(existingUsers[0].id, { full_name: data.user_name });
+      }
+      
       // Create profile with the user's email as created_by
-      const { user_email, ...profileData } = data;
+      const { user_email, user_name, ...profileData } = data;
       return base44.entities.UserProfile.create(profileData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
+      queryClient.invalidateQueries(['all-users']);
       setShowDialog(false);
       setEditingProfile(null);
       toast.success('Perfil criado com sucesso!');
@@ -81,9 +87,21 @@ export default function AdminUsers() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.UserProfile.update(id, data),
+    mutationFn: async ({ id, data, userEmail }) => {
+      // Update user name if provided
+      if (data.user_name) {
+        const existingUsers = await base44.entities.User.filter({ email: userEmail });
+        if (existingUsers[0]) {
+          await base44.entities.User.update(existingUsers[0].id, { full_name: data.user_name });
+        }
+      }
+      
+      const { user_name, ...profileData } = data;
+      return base44.entities.UserProfile.update(id, profileData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['all-profiles']);
+      queryClient.invalidateQueries(['all-users']);
       setShowDialog(false);
       setEditingProfile(null);
       toast.success('Perfil atualizado com sucesso!');
@@ -99,10 +117,15 @@ export default function AdminUsers() {
       phone: formData.get('phone'),
       status: formData.get('status'),
       parent_user_id: formData.get('parent_user_id') || null,
+      user_name: formData.get('user_name') || null,
     };
 
     if (editingProfile) {
-      updateProfileMutation.mutate({ id: editingProfile.id, data });
+      updateProfileMutation.mutate({ 
+        id: editingProfile.id, 
+        data,
+        userEmail: editingProfile.created_by
+      });
     } else {
       const userEmail = formData.get('user_email');
       createProfileMutation.mutate({ ...data, user_email: userEmail });
@@ -196,7 +219,7 @@ export default function AdminUsers() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {editingProfile ? (
               <div>
-                <Label>Usuário</Label>
+                <Label>Email do Usuário</Label>
                 <Input value={editingProfile.created_by} disabled />
               </div>
             ) : (
@@ -211,6 +234,15 @@ export default function AdminUsers() {
                 />
               </div>
             )}
+            <div>
+              <Label htmlFor="user_name">Nome Completo</Label>
+              <Input
+                id="user_name"
+                name="user_name"
+                defaultValue={editingProfile ? users.find(u => u.email === editingProfile.created_by)?.full_name : ''}
+                placeholder="Nome do usuário"
+              />
+            </div>
             <div>
               <Label htmlFor="client_id">Cliente *</Label>
               <Select name="client_id" defaultValue={editingProfile?.client_id} required>
