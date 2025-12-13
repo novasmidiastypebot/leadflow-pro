@@ -25,23 +25,16 @@ export default function LeadAssignment({ currentUser, currentUserProfile, select
     setAccessibleEmails(emails);
   };
 
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: async () => {
-      return await base44.entities.User.list();
-    },
-  });
-
-  const { data: allProfiles = [] } = useQuery({
-    queryKey: ['profiles', currentUserProfile?.client_id],
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ['team-members', currentUserProfile?.client_id],
     queryFn: async () => {
       if (!currentUserProfile) return [];
-      return await base44.entities.UserProfile.filter({ client_id: currentUserProfile.client_id });
+      return await base44.entities.TeamMember.filter({ client_id: currentUserProfile.client_id });
     },
     enabled: !!currentUserProfile,
   });
 
-  const assignableUsers = allUsers.filter(u => accessibleEmails.includes(u.email));
+  const assignableUsers = allMembers.filter(m => accessibleEmails.includes(m.email));
 
   return (
     <div>
@@ -55,14 +48,11 @@ export default function LeadAssignment({ currentUser, currentUserProfile, select
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={null}>Não atribuído</SelectItem>
-          {assignableUsers.map((user) => {
-            const profile = allProfiles.find(p => p.created_by === user.email);
-            return (
-              <SelectItem key={user.email} value={user.email}>
-                {user.full_name} {profile && `(${profile.role})`}
-              </SelectItem>
-            );
-          })}
+          {assignableUsers.map((member) => (
+            <SelectItem key={member.email} value={member.email}>
+              {member.name} ({member.role})
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>
