@@ -162,9 +162,9 @@ export default function Settings() {
                     />
                   </div>
                 </div>
-                <Button type="submit">
+                <Button type="submit" disabled={updateClientMutation.isPending}>
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
+                  {updateClientMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               </form>
             </CardContent>
@@ -202,9 +202,9 @@ export default function Settings() {
                     defaultValue={userProfile.phone}
                   />
                 </div>
-                <Button type="submit">
+                <Button type="submit" disabled={updateProfileMutation.isPending}>
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
+                  {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
               </form>
             </CardContent>
