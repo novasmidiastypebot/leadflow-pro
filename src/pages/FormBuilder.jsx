@@ -39,6 +39,26 @@ export default function FormBuilder() {
   useEffect(() => {
     if (formId && userProfile) {
       loadForm();
+    } else if (!formId && userProfile) {
+      // Adicionar campos obrigatórios para novos formulários
+      setFields([
+        {
+          field_type: 'text',
+          label: 'Nome',
+          placeholder: 'Digite seu nome completo',
+          is_required: true,
+          options: '',
+          is_default: true,
+        },
+        {
+          field_type: 'email',
+          label: 'E-mail',
+          placeholder: 'Digite seu e-mail',
+          is_required: true,
+          options: '',
+          is_default: true,
+        }
+      ]);
     }
   }, [formId, userProfile]);
 
@@ -146,6 +166,12 @@ export default function FormBuilder() {
   };
 
   const removeField = (index) => {
+    const field = fields[index];
+    // Não permitir remover campos padrão (Nome e E-mail)
+    if (field.is_default) {
+      alert('Este campo é obrigatório e não pode ser removido.');
+      return;
+    }
     setFields(fields.filter((_, i) => i !== index));
   };
 
@@ -258,15 +284,20 @@ export default function FormBuilder() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <GripVertical className="w-4 h-4 text-gray-400" />
-                      <span className="font-medium text-sm">Campo {index + 1}</span>
+                      <span className="font-medium text-sm">
+                        Campo {index + 1}
+                        {field.is_default && <span className="text-blue-600 ml-2 text-xs">(Obrigatório)</span>}
+                      </span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeField(index)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
+                    {!field.is_default && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeField(index)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -325,6 +356,7 @@ export default function FormBuilder() {
                     <Checkbox
                       checked={field.is_required}
                       onCheckedChange={(checked) => updateField(index, 'is_required', checked)}
+                      disabled={field.is_default}
                     />
                     <Label className="text-sm">Campo obrigatório</Label>
                   </div>
