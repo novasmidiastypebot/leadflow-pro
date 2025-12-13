@@ -141,6 +141,9 @@ export default function OrderCreate() {
     const dailyQty = parseInt(dailyQuantity);
     const paid = paidAmount ? parseFloat(paidAmount) : 0;
     
+    // Determinar tipos de lead a usar
+    const leadTypesToUse = leadType === 'ambos' ? ['juridica', 'fisica'] : [leadType];
+    
     // Determinar DDDs a usar
     let dddsToUse = [null]; // null = todo o estado
     if (dddMode === 'specific' && specificDdds) {
@@ -156,28 +159,30 @@ export default function OrderCreate() {
       dddsToUse = allDdds.filter(d => !excluded.includes(d));
     }
     
-    // Criar pedidos para cada combinação de estado/DDD
+    // Criar pedidos para cada combinação de tipo/estado/DDD
     const orders = [];
-    for (const state of selectedStates) {
-      for (const ddd of dddsToUse) {
-        const totalAmount = quantityPerOrder * unitPrice;
-        orders.push({
-          client_id: clientId,
-          product_id: selectedProduct,
-          category_id: selectedCategory || null,
-          lead_type: leadType,
-          state: state,
-          ddd: ddd,
-          total_quantity: quantityPerOrder,
-          daily_quantity: dailyQty,
-          delivered_quantity: 0,
-          unit_price: unitPrice,
-          total_amount: totalAmount,
-          paid_amount: paid,
-          status: paid >= totalAmount ? 'active' : 'pending_payment',
-          distribution_mode: distributionMode,
-          assigned_to: distributionMode !== 'manual' ? user.email : null,
-        });
+    for (const type of leadTypesToUse) {
+      for (const state of selectedStates) {
+        for (const ddd of dddsToUse) {
+          const totalAmount = quantityPerOrder * unitPrice;
+          orders.push({
+            client_id: clientId,
+            product_id: selectedProduct,
+            category_id: selectedCategory || null,
+            lead_type: type,
+            state: state,
+            ddd: ddd,
+            total_quantity: quantityPerOrder,
+            daily_quantity: dailyQty,
+            delivered_quantity: 0,
+            unit_price: unitPrice,
+            total_amount: totalAmount,
+            paid_amount: paid,
+            status: paid >= totalAmount ? 'active' : 'pending_payment',
+            distribution_mode: distributionMode,
+            assigned_to: distributionMode !== 'manual' ? user.email : null,
+          });
+        }
       }
     }
     
@@ -198,8 +203,10 @@ export default function OrderCreate() {
     }
   };
 
-  const totalOrders = selectedStates.length * (dddMode === 'specific' && specificDdds ? specificDdds.split(',').length : 
-                      dddMode === 'except' && excludedDdds ? (100 - excludedDdds.split(',').length) : 1);
+  const leadTypeMultiplier = leadType === 'ambos' ? 2 : 1;
+  const dddCount = dddMode === 'specific' && specificDdds ? specificDdds.split(',').length : 
+                   dddMode === 'except' && excludedDdds ? (100 - excludedDdds.split(',').length) : 1;
+  const totalOrders = selectedStates.length * dddCount * leadTypeMultiplier;
   const totalAmount = totalQuantity && unitPrice ? parseFloat(totalQuantity) * unitPrice * totalOrders : 0;
 
   return (
@@ -279,6 +286,7 @@ export default function OrderCreate() {
                     <SelectContent>
                       <SelectItem value="juridica">Jurídica (PJ)</SelectItem>
                       <SelectItem value="fisica">Física (PF)</SelectItem>
+                      <SelectItem value="ambos">Ambos (PJ e PF)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
