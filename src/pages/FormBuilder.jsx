@@ -62,7 +62,7 @@ export default function FormBuilder() {
           field_type: 'select',
           label: 'Possui CNPJ',
           placeholder: 'Selecione',
-          is_required: true,
+          is_required: false,
           options: 'Sim,Não',
           is_default: true,
         }
