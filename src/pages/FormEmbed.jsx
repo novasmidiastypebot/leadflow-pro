@@ -26,7 +26,7 @@ export default function FormEmbed() {
   const { data: formTemplate } = useQuery({
     queryKey: ['form', embedId],
     queryFn: async () => {
-      const forms = await base44.entities.FormTemplate.filter({ embed_id: embedId });
+      const forms = await base44.asServiceRole.entities.FormTemplate.filter({ embed_id: embedId });
       return forms[0];
     },
     enabled: !!embedId,
@@ -36,14 +36,14 @@ export default function FormEmbed() {
     queryKey: ['fields', formTemplate?.id],
     queryFn: async () => {
       if (!formTemplate) return [];
-      return await base44.entities.FormField.filter({ form_template_id: formTemplate.id }, 'order');
+      return await base44.asServiceRole.entities.FormField.filter({ form_template_id: formTemplate.id }, 'order');
     },
     enabled: !!formTemplate,
   });
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.entities.Lead.create(data);
+      return await base44.asServiceRole.entities.Lead.create(data);
     },
     onSuccess: async (createdLead) => {
       setSubmitted(true);
