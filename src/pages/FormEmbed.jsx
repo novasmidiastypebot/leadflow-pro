@@ -22,23 +22,18 @@ export default function FormEmbed() {
   const urlParams = new URLSearchParams(window.location.search);
   const embedId = urlParams.get('id');
 
-  const { data: formTemplate } = useQuery({
-    queryKey: ['form', embedId],
+  const { data: formResponse, isLoading, error } = useQuery({
+    queryKey: ['formEmbed', embedId],
     queryFn: async () => {
-      const forms = await base44.asServiceRole.entities.FormTemplate.filter({ embed_id: embedId });
-      return forms[0];
+      const response = await base44.functions.invoke('getFormEmbed', { embedId });
+      return response.data;
     },
     enabled: !!embedId,
+    retry: 2,
   });
 
-  const { data: fields = [] } = useQuery({
-    queryKey: ['fields', formTemplate?.id],
-    queryFn: async () => {
-      if (!formTemplate) return [];
-      return await base44.asServiceRole.entities.FormField.filter({ form_template_id: formTemplate.id }, 'order');
-    },
-    enabled: !!formTemplate,
-  });
+  const formTemplate = formResponse?.formTemplate;
+  const fields = formResponse?.fields || [];
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
@@ -62,10 +57,18 @@ export default function FormEmbed() {
     setFormData({ ...formData, [fieldLabel]: value });
   };
 
-  if (!formTemplate) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center p-8 min-h-screen">
         <p className="text-gray-600">Carregando formulário...</p>
+      </div>
+    );
+  }
+
+  if (error || !formTemplate) {
+    return (
+      <div className="flex items-center justify-center p-8 min-h-screen">
+        <p className="text-red-600">Erro ao carregar formulário. Verifique o link.</p>
       </div>
     );
   }
