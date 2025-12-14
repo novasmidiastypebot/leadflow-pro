@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import toast from 'react-hot-toast';
+import { processOrderDistribution } from '../components/LeadDistribution';
 
 const ESTADOS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 
@@ -104,10 +105,24 @@ export default function OrderCreate() {
       console.log('Pedido criado com sucesso:', result);
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       console.log('onSuccess chamado, pedido:', data);
       toast.success('Pedido criado com sucesso!');
       queryClient.invalidateQueries(['orders']);
+      
+      // Tentar distribuir leads automaticamente
+      if (data.status === 'active' && data.distribution_mode !== 'manual') {
+        toast.loading('Buscando leads para distribuir...');
+        try {
+          const result = await processOrderDistribution(data.id);
+          if (result.success) {
+            toast.success(`${result.distributed} lead(s) distribuída(s) automaticamente!`);
+          }
+        } catch (error) {
+          console.error('Erro ao distribuir leads:', error);
+        }
+      }
+      
       setTimeout(() => {
         navigate(createPageUrl('Orders'));
       }, 500);

@@ -188,3 +188,153 @@ export async function distributeLeadsBulk(leads, clientId, orderId = null) {
   
   return results;
 }
+
+/**
+ * Busca leads disponíveis que atendem aos critérios do pedido
+ */
+export async function findMatchingLeadsForOrder(order) {
+  // Buscar todas as leads não distribuídas
+  const availableLeads = await base44.entities.Lead.filter({ 
+    is_distributed: false,
+    product_id: order.product_id
+  });
+
+  // Filtrar leads que atendem aos critérios do pedido
+  const matchingLeads = availableLeads.filter(lead => {
+    // Verificar tipo de lead
+    if (order.lead_types === 'juridica' && lead.lead_type !== 'juridica') return false;
+    if (order.lead_types === 'fisica' && lead.lead_type !== 'fisica') return false;
+    // Se for 'ambos', aceita qualquer tipo
+
+    // Verificar estado
+    if (order.states && lead.state) {
+      const acceptedStates = order.states.split(',').map(s => s.trim());
+      if (!acceptedStates.includes(lead.state)) return false;
+    }
+
+    // Verificar DDD
+    if (lead.ddd && order.ddds && order.ddds !== 'all') {
+      if (order.ddds.startsWith('except:')) {
+        const excludedDdds = order.ddds.replace('except:', '').split(',').map(d => d.trim());
+        if (excludedDdds.includes(lead.ddd)) return false;
+      } else {
+        const acceptedDdds = order.ddds.split(',').map(d => d.trim());
+        if (!acceptedDdds.includes(lead.ddd)) return false;
+      }
+    }
+
+    return true;
+  });
+
+  return matchingLeads;
+}
+
+/**
+ * Processa distribuição automática para um pedido
+ * Distribui leads até atingir a quantidade diária ou até acabar o saldo
+ */
+export async function processOrderDistribution(orderId) {
+  const orders = await base44.entities.Order.filter({ id: orderId });
+  if (orders.length === 0) return { success: false, message: 'Pedido não encontrado' };
+  
+  const order = orders[0];
+  
+  // Verificar se pedido está ativo
+  if (order.status !== 'active') {
+    return { success: false, message: 'Pedido não está ativo' };
+  }
+
+  // Verificar quantas leads já foram entregues hoje
+  const today = new Date().toISOString().split('T')[0];
+  const todayLeads = await base44.entities.Lead.filter({
+    order_id: orderId,
+    is_distributed: true
+  });
+  
+  const todayCount = todayLeads.filter(l => 
+    l.distribution_date && l.distribution_date.startsWith(today)
+  ).length;
+
+  // Calcular quantas leads pode distribuir
+  const remainingDaily = order.daily_quantity - todayCount;
+  const remainingTotal = order.total_quantity - order.delivered_quantity;
+  const toDistribute = Math.min(remainingDaily, remainingTotal);
+
+  if (toDistribute <= 0) {
+    return { success: false, message: 'Limite diário ou total atingido' };
+  }
+
+  // Buscar leads disponíveis
+  const matchingLeads = await findMatchingLeadsForOrder(order);
+  const leadsToDistribute = matchingLeads.slice(0, toDistribute);
+
+  if (leadsToDistribute.length === 0) {
+    return { success: false, message: 'Nenhuma lead disponível que atenda aos critérios' };
+  }
+
+  // Distribuir as leads
+  const results = await distributeLeadsBulk(leadsToDistribute, order.client_id, orderId);
+  
+  // Atualizar pedido
+  const successCount = results.filter(r => r.success).length;
+  await base44.entities.Order.update(orderId, {
+    delivered_quantity: order.delivered_quantity + successCount,
+    last_delivery_date: new Date().toISOString()
+  });
+
+  return { 
+    success: true, 
+    distributed: successCount,
+    total: leadsToDistribute.length 
+  };
+}
+
+/**
+ * Tenta distribuir uma lead nova para pedidos ativos compatíveis
+ */
+export async function autoDistributeNewLead(lead) {
+  // Buscar pedidos ativos do produto
+  const activeOrders = await base44.entities.Order.filter({
+    product_id: lead.product_id,
+    status: 'active'
+  });
+
+  // Filtrar pedidos que aceitam essa lead
+  for (const order of activeOrders) {
+    const matchingLeads = await findMatchingLeadsForOrder(order);
+    
+    if (matchingLeads.find(l => l.id === lead.id)) {
+      // Verificar limite diário
+      const today = new Date().toISOString().split('T')[0];
+      const todayLeads = await base44.entities.Lead.filter({
+        order_id: order.id,
+        is_distributed: true
+      });
+      
+      const todayCount = todayLeads.filter(l => 
+        l.distribution_date && l.distribution_date.startsWith(today)
+      ).length;
+
+      if (todayCount >= order.daily_quantity) continue;
+      if (order.delivered_quantity >= order.total_quantity) continue;
+
+      // Distribuir para este pedido
+      try {
+        await distributeLeadAutomatically(lead, order.client_id, order.id);
+        
+        // Atualizar pedido
+        await base44.entities.Order.update(order.id, {
+          delivered_quantity: order.delivered_quantity + 1,
+          last_delivery_date: new Date().toISOString()
+        });
+        
+        return { success: true, orderId: order.id };
+      } catch (error) {
+        console.error('Erro ao distribuir lead:', error);
+        continue;
+      }
+    }
+  }
+
+  return { success: false, message: 'Nenhum pedido ativo compatível encontrado' };
+}
