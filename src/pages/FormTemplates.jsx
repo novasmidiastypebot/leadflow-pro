@@ -179,7 +179,7 @@ export default function FormTemplates() {
 
       {/* Embed Code Dialog */}
       <Dialog open={showEmbedDialog} onOpenChange={setShowEmbedDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Código de Incorporação</DialogTitle>
           </DialogHeader>
@@ -187,27 +187,32 @@ export default function FormTemplates() {
             <p className="text-sm text-gray-600">
               Copie o código abaixo e cole no HTML da sua página onde deseja exibir o formulário:
             </p>
-            <div className="relative">
-              <pre className="bg-gray-50 p-4 rounded-lg text-sm overflow-x-auto">
-                <code>{embedCode}</code>
-              </pre>
-              <Button
-                size="sm"
-                className="absolute top-2 right-2"
-                onClick={copyToClipboard}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Copiado!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copiar
-                  </>
-                )}
-              </Button>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-700 mb-2">Código iframe:</p>
+                  <div className="bg-white p-3 rounded border border-gray-200 break-all text-xs font-mono text-gray-800">
+                    {embedCode}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="flex-shrink-0"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
