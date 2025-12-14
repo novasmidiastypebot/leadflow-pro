@@ -13,6 +13,7 @@ import ProductPricing from './pages/ProductPricing';
 import AdminClients from './pages/AdminClients';
 import AdminUsers from './pages/AdminUsers';
 import AdminOrders from './pages/AdminOrders';
+import DistributionAdmin from './pages/DistributionAdmin';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "AdminClients": AdminClients,
     "AdminUsers": AdminUsers,
     "AdminOrders": AdminOrders,
+    "DistributionAdmin": DistributionAdmin,
 }
 
 export const pagesConfig = {

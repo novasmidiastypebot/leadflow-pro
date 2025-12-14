@@ -90,6 +90,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Precificação', icon: DollarSign, path: 'ProductPricing' },
     { name: 'Equipe', icon: Users, path: 'Team' },
     { name: 'Formulários', icon: FileText, path: 'FormTemplates' },
+    { name: 'Distribuição Auto', icon: Settings, path: 'DistributionAdmin' },
   ];
 
   const adminMenuItems = [
