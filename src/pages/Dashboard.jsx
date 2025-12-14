@@ -49,12 +49,16 @@ export default function Dashboard() {
   };
 
   const { data: allLeads = [], isLoading } = useQuery({
-    queryKey: ['leads', userProfile?.client_id],
+    queryKey: ['leads', userProfile?.client_id, user?.role],
     queryFn: async () => {
-      if (!userProfile) return [];
+      if (user?.role === 'admin') {
+        // Admin vê todas as leads
+        return await base44.entities.Lead.list('-created_date');
+      }
+      if (!userProfile?.client_id) return [];
       return await base44.entities.Lead.filter({ client_id: userProfile.client_id });
     },
-    enabled: !!userProfile,
+    enabled: !!(userProfile || user?.role === 'admin'),
   });
 
   // Filtrar leads baseado em hierarquia
