@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CheckCircle } from 'lucide-react';
-import { autoDistributeNewLead } from '../components/LeadDistribution';
 
 export default function FormEmbed() {
   const [formData, setFormData] = useState({});
@@ -43,32 +42,20 @@ export default function FormEmbed() {
 
   const createLeadMutation = useMutation({
     mutationFn: async (data) => {
-      return await base44.asServiceRole.entities.Lead.create(data);
+      const response = await base44.functions.invoke('submitFormEmbed', {
+        formData: data,
+        embedId: embedId
+      });
+      return response.data;
     },
-    onSuccess: async (createdLead) => {
+    onSuccess: () => {
       setSubmitted(true);
-      
-      // Tentar distribuir automaticamente para pedidos ativos
-      try {
-        await autoDistributeNewLead(createdLead);
-      } catch (error) {
-        console.error('Erro ao auto-distribuir lead:', error);
-      }
     },
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    createLeadMutation.mutate({
-      client_id: formTemplate.client_id,
-      form_template_id: formTemplate.id,
-      product_id: formTemplate.product_id,
-      form_data: formData,
-      status: 'new',
-      priority: 'medium',
-      source: 'form_embed',
-    });
+    createLeadMutation.mutate(formData);
   };
 
   const handleFieldChange = (fieldLabel, value) => {
