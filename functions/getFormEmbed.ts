@@ -3,8 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const url = new URL(req.url);
-    const embedId = url.searchParams.get('embedId');
+    const body = await req.json();
+    const embedId = body.embedId;
     
     if (!embedId) {
       return Response.json({ error: 'ID do formulário não fornecido' }, { status: 400 });
