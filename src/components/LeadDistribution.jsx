@@ -56,6 +56,9 @@ export async function distributeLeadAutomatically(lead, clientId, orderId = null
       client_id: clientId,
     });
 
+    // 4. Enviar emails de notificação
+    await sendDistributionEmails(updatedLead, clientId, assignedTo);
+
     return updatedLead;
   } catch (error) {
     console.error('Erro ao distribuir lead:', error);
@@ -105,6 +108,67 @@ async function findBestTeamMember(clientId, lead) {
 
   // Retornar o membro com menor carga
   return eligibleMembers[0].email;
+}
+
+/**
+ * Envia emails de notificação sobre a distribuição da lead
+ */
+async function sendDistributionEmails(lead, clientId, assignedTo) {
+  try {
+    // Buscar informações do produto e cliente
+    const products = await base44.entities.Product.filter({ id: lead.product_id });
+    const productName = products.length > 0 ? products[0].name : 'Produto não especificado';
+    
+    const clients = await base44.entities.Client.filter({ id: clientId });
+    const clientName = clients.length > 0 ? clients[0].name : 'Cliente';
+
+    // Formatar dados da lead
+    const leadData = lead.form_data || {};
+    let leadDetails = '';
+    for (const [key, value] of Object.entries(leadData)) {
+      leadDetails += `${key}: ${value}\n`;
+    }
+
+    // Email para o Master (cliente)
+    const masterEmailBody = `
+MASTER
+LEAD - ${productName.toUpperCase()}
+-----------------------------
+${leadDetails}
+Esta lead foi distribuída para você.
+    `.trim();
+
+    // Email para o Super Admin
+    const adminEmailBody = `
+LEAD - ${productName.toUpperCase()} - CLIENTE = ${clientName.toUpperCase()}
+-----------------------------
+${leadDetails}
+Lead distribuída para: ${assignedTo}
+    `.trim();
+
+    // Enviar email para o master
+    if (assignedTo) {
+      await base44.integrations.Core.SendEmail({
+        to: assignedTo,
+        subject: `Nova Lead - ${productName}`,
+        body: masterEmailBody,
+      });
+    }
+
+    // Enviar email para super admin
+    // Buscar usuários admin do sistema
+    const adminUsers = await base44.entities.User.filter({ role: 'admin' });
+    if (adminUsers.length > 0) {
+      await base44.integrations.Core.SendEmail({
+        to: adminUsers[0].email,
+        subject: `Lead Distribuída - ${productName} - ${clientName}`,
+        body: adminEmailBody,
+      });
+    }
+  } catch (error) {
+    console.error('Erro ao enviar emails de distribuição:', error);
+    // Não falhar a distribuição se o email falhar
+  }
 }
 
 /**
