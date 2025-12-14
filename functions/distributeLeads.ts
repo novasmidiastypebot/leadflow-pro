@@ -87,8 +87,21 @@ Deno.serve(async (req) => {
             // Determinar para quem distribuir
             let assignedTo = order.assigned_to;
             
-            if (!assignedTo || order.distribution_mode === 'auto_team') {
-              // Buscar membros da equipe do cliente
+            // Se não tem assigned_to no pedido, buscar master do cliente
+            if (!assignedTo) {
+              const masterMembers = await base44.asServiceRole.entities.TeamMember.filter({ 
+                client_id: order.client_id,
+                role: 'master',
+                status: 'active'
+              });
+              
+              if (masterMembers.length > 0) {
+                assignedTo = masterMembers[0].email;
+              }
+            }
+            
+            // Se for distribuição automática para equipe, redistribuir
+            if (order.distribution_mode === 'auto_team') {
               const teamMembers = await base44.asServiceRole.entities.TeamMember.filter({ 
                 client_id: order.client_id,
                 status: 'active'
