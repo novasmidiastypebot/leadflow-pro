@@ -53,7 +53,6 @@ export async function distributeLeadAutomatically(lead, clientId, orderId = null
       is_distributed: true,
       distribution_date: new Date().toISOString(),
       order_id: orderId,
-      client_id: clientId,
     });
 
     // 4. Enviar emails de notificação

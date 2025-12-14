@@ -127,7 +127,6 @@ Deno.serve(async (req) => {
           is_distributed: true,
           distribution_date: new Date().toISOString(),
           order_id: order.id,
-          client_id: order.client_id,
         });
         
         // Atualizar pedido
