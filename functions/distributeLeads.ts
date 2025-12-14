@@ -144,61 +144,69 @@ Deno.serve(async (req) => {
             
             // Enviar notificação por email
             if (assignedTo) {
-              const products = await base44.asServiceRole.entities.Product.filter({ id: lead.product_id });
-              const productName = products.length > 0 ? products[0].name : 'Produto';
-              
-              const clients = await base44.asServiceRole.entities.Client.filter({ id: order.client_id });
-              const clientName = clients.length > 0 ? clients[0].name : 'Cliente';
-              
-              const leadData = lead.form_data || {};
-              let leadDetailsRows = '';
-              for (const [key, value] of Object.entries(leadData)) {
-                leadDetailsRows += `<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${key}</td><td style="padding: 8px; border: 1px solid #ddd;">${value}</td></tr>`;
-              }
-              
-              // Email para o cliente/master
-              const clientEmailBody = `
-                <html>
-                <body style="font-family: Arial, sans-serif; color: #333;">
-                  <h2 style="color: #2563eb;">Nova Lead Distribuída</h2>
-                  <h3 style="color: #059669;">Produto: ${productName.toUpperCase()}</h3>
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                    ${leadDetailsRows}
-                  </table>
-                  <p style="margin-top: 20px; color: #666;">Esta lead foi distribuída para você.</p>
-                </body>
-                </html>
-              `;
-              
-              await base44.asServiceRole.integrations.Core.SendEmail({
-                to: assignedTo,
-                subject: `Nova Lead - ${productName}`,
-                body: clientEmailBody
-              });
-              
-              // Email para o superadmin
-              const adminEmailBody = `
-                <html>
-                <body style="font-family: Arial, sans-serif; color: #333;">
-                  <h2 style="color: #dc2626;">Lead Distribuída</h2>
-                  <h3 style="color: #059669;">Produto: ${productName.toUpperCase()}</h3>
-                  <p style="font-size: 16px;"><strong>Cliente:</strong> ${clientName.toUpperCase()}</p>
-                  <p style="font-size: 16px;"><strong>Distribuída para:</strong> ${assignedTo}</p>
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-                    ${leadDetailsRows}
-                  </table>
-                </body>
-                </html>
-              `;
-              
-              // Buscar admin
-              const adminUsers = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
-              if (adminUsers.length > 0) {
+              try {
+                const products = await base44.asServiceRole.entities.Product.filter({ id: lead.product_id });
+                const productName = products.length > 0 ? products[0].name : 'Produto';
+                
+                const clients = await base44.asServiceRole.entities.Client.filter({ id: order.client_id });
+                const clientName = clients.length > 0 ? clients[0].name : 'Cliente';
+                
+                const leadData = lead.form_data || {};
+                let leadDetailsRows = '';
+                for (const [key, value] of Object.entries(leadData)) {
+                  leadDetailsRows += `<tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">${key}</td><td style="padding: 8px; border: 1px solid #ddd;">${value}</td></tr>`;
+                }
+                
+                // Email para o cliente/master
+                const clientEmailBody = `
+                  <html>
+                  <body style="font-family: Arial, sans-serif; color: #333;">
+                    <h2 style="color: #2563eb;">Nova Lead Distribuída</h2>
+                    <h3 style="color: #059669;">Produto: ${productName.toUpperCase()}</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                      ${leadDetailsRows}
+                    </table>
+                    <p style="margin-top: 20px; color: #666;">Esta lead foi distribuída para você.</p>
+                  </body>
+                  </html>
+                `;
+                
+                // Buscar admin para CC
+                const adminUsers = await base44.asServiceRole.entities.User.filter({ role: 'admin' });
+                const superAdminEmail = adminUsers.length > 0 ? adminUsers[0].email : null;
+                
+                // Email para superadmin com CC
+                const adminEmailBody = `
+                  <html>
+                  <body style="font-family: Arial, sans-serif; color: #333;">
+                    <h2 style="color: #dc2626;">Lead Distribuída</h2>
+                    <h3 style="color: #059669;">Produto: ${productName.toUpperCase()}</h3>
+                    <p style="font-size: 16px;"><strong>Cliente:</strong> ${clientName.toUpperCase()}</p>
+                    <p style="font-size: 16px;"><strong>Distribuída para:</strong> ${assignedTo}</p>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+                      ${leadDetailsRows}
+                    </table>
+                  </body>
+                  </html>
+                `;
+                
+                // Enviar para o cliente com CC para super admin
                 await base44.asServiceRole.integrations.Core.SendEmail({
-                  to: adminUsers[0].email,
-                  subject: `Lead Distribuída - ${productName} - ${clientName}`,
-                  body: adminEmailBody
+                  to: assignedTo,
+                  subject: `Nova Lead - ${productName}`,
+                  body: clientEmailBody
                 });
+                
+                // Enviar cópia separada para super admin
+                if (superAdminEmail && superAdminEmail !== assignedTo) {
+                  await base44.asServiceRole.integrations.Core.SendEmail({
+                    to: superAdminEmail,
+                    subject: `Lead Distribuída - ${productName} - ${clientName}`,
+                    body: adminEmailBody
+                  });
+                }
+              } catch (emailError) {
+                console.error('Erro ao enviar emails:', emailError);
               }
             }
             

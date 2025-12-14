@@ -155,10 +155,10 @@ export default function Dashboard() {
               <div key={lead.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900">
-                    {lead.form_data?.nome || lead.form_data?.name || 'Sem nome'}
+                    {lead.form_data?.Nome || lead.form_data?.nome || lead.form_data?.name || 'Sem nome'}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {lead.form_data?.email || 'Sem email'}
+                    {lead.form_data?.['E-mail'] || lead.form_data?.email || 'Sem email'}
                   </p>
                 </div>
                 <div className="text-right">
