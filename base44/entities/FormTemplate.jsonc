@@ -1,0 +1,77 @@
+{
+  "name": "FormTemplate",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do formul\u00e1rio"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do formul\u00e1rio"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "ID do produto relacionado"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Status do formul\u00e1rio"
+    },
+    "embed_id": {
+      "type": "string",
+      "description": "ID \u00fanico para embed/iframe"
+    },
+    "style_config": {
+      "type": "object",
+      "description": "Configura\u00e7\u00f5es de estilo do formul\u00e1rio",
+      "properties": {
+        "title_color": {
+          "type": "string",
+          "default": "#111827"
+        },
+        "field_text_color": {
+          "type": "string",
+          "default": "#374151"
+        },
+        "field_border_color": {
+          "type": "string",
+          "default": "#d1d5db"
+        },
+        "field_font_family": {
+          "type": "string",
+          "default": "inherit"
+        },
+        "form_bg_color": {
+          "type": "string",
+          "default": "#ffffff"
+        },
+        "button_bg_color": {
+          "type": "string",
+          "default": "#2563eb"
+        },
+        "button_text_color": {
+          "type": "string",
+          "default": "#ffffff"
+        },
+        "button_text": {
+          "type": "string",
+          "default": "Enviar"
+        }
+      }
+    }
+  },
+  "required": [
+    "client_id",
+    "name"
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "name": "LeadInventory",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID do produto"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID da categoria"
+    },
+    "lead_type": {
+      "type": "string",
+      "enum": [
+        "juridica",
+        "fisica"
+      ],
+      "description": "Tipo de lead"
+    },
+    "state": {
+      "type": "string",
+      "description": "Estado (UF)"
+    },
+    "ddd": {
+      "type": "string",
+      "description": "DDD"
+    },
+    "available_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de leads dispon\u00edveis"
+    },
+    "reserved_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de leads reservadas para pedidos"
+    }
+  },
+  "required": [
+    "product_id",
+    "lead_type",
+    "state",
+    "ddd"
+  ]
+}

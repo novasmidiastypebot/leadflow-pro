@@ -1,0 +1,59 @@
+{
+  "name": "Payment",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "ID do pedido"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor do pagamento"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "credit_card",
+        "debit_card",
+        "pix",
+        "bank_transfer",
+        "deposit"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "refunded"
+      ],
+      "default": "pending",
+      "description": "Status do pagamento"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do pagamento"
+    },
+    "transaction_id": {
+      "type": "string",
+      "description": "ID da transa\u00e7\u00e3o no gateway de pagamento"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es sobre o pagamento"
+    }
+  },
+  "required": [
+    "order_id",
+    "client_id",
+    "amount",
+    "payment_method"
+  ]
+}

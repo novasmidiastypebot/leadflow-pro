@@ -1,0 +1,95 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "ID do produto"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID da categoria"
+    },
+    "lead_types": {
+      "type": "string",
+      "description": "Tipos de lead aceitos (juridica, fisica ou ambos)"
+    },
+    "states": {
+      "type": "string",
+      "description": "Estados aceitos separados por v\u00edrgula (ex: SP,RJ,MG)"
+    },
+    "ddds": {
+      "type": "string",
+      "description": "DDDs aceitos ou exclu\u00eddos (ex: all, 11,21,31 ou except:13,21,22)"
+    },
+    "total_quantity": {
+      "type": "number",
+      "description": "Quantidade total de leads contratadas"
+    },
+    "daily_quantity": {
+      "type": "number",
+      "description": "Quantidade di\u00e1ria de leads"
+    },
+    "delivered_quantity": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de leads j\u00e1 entregues"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Valor total pago/creditado no pedido"
+    },
+    "consumed_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Valor j\u00e1 consumido com leads distribu\u00eddas"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_payment",
+        "active",
+        "paused",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending_payment",
+      "description": "Status do pedido"
+    },
+    "distribution_mode": {
+      "type": "string",
+      "enum": [
+        "auto_client",
+        "auto_team",
+        "manual"
+      ],
+      "default": "manual",
+      "description": "Modo de distribui\u00e7\u00e3o: auto para cliente, auto para equipe, ou manual"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "Email do respons\u00e1vel pelo pedido (para distribui\u00e7\u00e3o autom\u00e1tica)"
+    },
+    "last_delivery_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da \u00faltima entrega de leads"
+    },
+    "notification_90_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se j\u00e1 foi enviada notifica\u00e7\u00e3o de 90% consumido"
+    }
+  },
+  "required": [
+    "client_id",
+    "product_id",
+    "total_quantity",
+    "daily_quantity",
+    "total_amount"
+  ]
+}

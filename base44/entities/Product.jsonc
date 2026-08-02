@@ -1,0 +1,54 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "category_id": {
+      "type": "string",
+      "description": "ID da categoria do produto"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do produto"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do produto"
+    },
+    "price": {
+      "type": "number",
+      "description": "Pre\u00e7o do produto"
+    },
+    "accepted_lead_types": {
+      "type": "string",
+      "description": "Tipos de lead aceitos: 'fisica', 'juridica', 'both'",
+      "enum": [
+        "fisica",
+        "juridica",
+        "both"
+      ],
+      "default": "both"
+    },
+    "subcategories": {
+      "type": "string",
+      "description": "Subcategorias separadas por v\u00edrgula (ex: Im\u00f3vel, Auto, Maquin\u00e1rios)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "Status do produto"
+    }
+  },
+  "required": [
+    "client_id",
+    "category_id",
+    "name"
+  ]
+}
