@@ -14,7 +14,8 @@ import {
   Settings,
   ShoppingCart,
   DollarSign,
-  Building2
+  Building2,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,11 +27,6 @@ import {
 import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ children, currentPageName }) {
-  // Não renderizar layout para página de embed
-  if (currentPageName === 'FormEmbed') {
-    return <>{children}</>;
-  }
-
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [client, setClient] = useState(null);
@@ -39,6 +35,11 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Não renderizar layout para página de embed
+  if (currentPageName === 'FormEmbed') {
+    return <>{children}</>;
+  }
 
   const loadUserData = async () => {
     const currentUser = await base44.auth.me();
@@ -91,6 +92,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Equipe', icon: Users, path: 'Team' },
     { name: 'Formulários', icon: FileText, path: 'FormTemplates' },
     { name: 'Distribuição Auto', icon: Settings, path: 'DistributionAdmin' },
+    { name: 'Documentação', icon: BookOpen, path: 'Documentation' },
   ];
 
   const adminMenuItems = [
